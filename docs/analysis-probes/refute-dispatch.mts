@@ -1,4 +1,4 @@
-// 独立复现：启动期间取消 / 取消后批准旧审批
+// 獨立復現：啟動期間取消 / 取消後批准舊審批
 const ROOT = 'file:///D:/codes/ai/AgentBox/agent-control-center-claude';
 const { EventBus, Orchestrator } = await import(`${ROOT}/packages/core/src/index.ts`);
 const { InMemoryControlPlaneStore } = await import(`${ROOT}/packages/storage/src/index.ts`);
@@ -20,7 +20,7 @@ class GatedAgent {
     const base = { projectId: input.projectId, taskId: input.taskId, runId: input.runId, agentId: this.info.id, sessionId: sid, severity: 'info', confidence: 'confirmed' };
     this.sessions.set(sid, { base, cancelled: false });
     if (this.emitStartedBeforeGate) await emit({ ...base, type: 'agent.started', data: {} });
-    // 模拟 Claude 等待 init / Codex 等待 thread/start
+    // 模擬 Claude 等待 init / Codex 等待 thread/start
     await new Promise<void>((r) => (this.gate = r));
     if (!this.emitStartedBeforeGate) await emit({ ...base, type: 'agent.started', data: {} });
     this.log.push('working');
@@ -32,7 +32,7 @@ class GatedAgent {
   async resume(sid: string, input: any) { this.log.push(['resume', sid, input.reason]); }
 }
 
-// 场景 A：start 期间（agent.started 之前）取消
+// 場景 A：start 期間（agent.started 之前）取消
 {
   const store = new InMemoryControlPlaneStore();
   const orch = new Orchestrator(store, new EventBus(), { workspacePolicy: 'shared' });
@@ -50,7 +50,7 @@ class GatedAgent {
   console.log('A', JSON.stringify({ before, mid, after: run.status, log: claude.log, session: run.agentSessions.claude?.status, live: (orch as any).liveSessions.size }));
 }
 
-// 场景 B：WAITING_APPROVAL 时取消，然后批准旧审批
+// 場景 B：WAITING_APPROVAL 時取消，然後批准舊審批
 {
   const store = new InMemoryControlPlaneStore();
   const bus = new EventBus();
@@ -73,7 +73,7 @@ class GatedAgent {
   console.log('B', JSON.stringify({ s1, afterCancel: s2.status, pendingAfterCancel: s2.pendingApprovals.map((x: any) => x.status), err, final: s3.status, log: claude.log }));
 }
 
-// 场景 C：BLOCKED 状态下给已有会话发消息
+// 場景 C：BLOCKED 狀態下給已有會話發訊息
 {
   const store = new InMemoryControlPlaneStore();
   const bus = new EventBus();

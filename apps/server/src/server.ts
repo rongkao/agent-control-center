@@ -96,6 +96,8 @@ export interface StartServerOptions {
   installProcessGuards?: boolean;
   /** 是否提供前端靜態檔案（預設 web/dist 存在時提供）。 */
   serveWeb?: boolean;
+  /** 前端靜態檔案所在的目錄（桌面版打包後的位置）；預設是原始碼旁邊的 apps/web/dist。 */
+  webRoot?: string;
   /**
    * 致命錯誤（例如單實例租約丟失）：先呼叫本回呼通知宿主，隨後服務自行關閉（closed 在關閉完成後 resolve）。
    * 命令列入口用它退出程序；桌面外殼可以用它提示使用者。
@@ -554,7 +556,13 @@ export async function startServer(options: StartServerOptions = {}): Promise<Run
           : undefined;
       for (const adapter of createMockAdapters({ log: logError })) {
         if (runtimeMode === 'real' && adapter.info.id === 'claude') {
-          const claude = new ClaudeAgentSdkAdapter({ defaultCwd: workspace, model: env.ACC_CLAUDE_MODEL || undefined, log: logError });
+          const claude = new ClaudeAgentSdkAdapter({
+            defaultCwd: workspace,
+            model: env.ACC_CLAUDE_MODEL || undefined,
+            log: logError,
+            // 指定 Claude Code 執行檔（桌面版打包後由外殼填入 app.asar.unpacked 裡的 claude.exe；一般情況由 SDK 自己找）
+            ...(env.ACC_CLAUDE_EXECUTABLE ? { extraOptions: { pathToClaudeCodeExecutable: env.ACC_CLAUDE_EXECUTABLE } } : {}),
+          });
           // 登入狀態（P1-16）：沒有登入時介面上標成“未就緒”並說明怎麼登入
           applyReadiness(claude.info, claudeReadiness(env), notice);
           orchestrator.registerAdapter(claude);
@@ -647,7 +655,7 @@ export async function startServer(options: StartServerOptions = {}): Promise<Run
     });
 
     // 生產模式：若前端已構建（npm start 會先構建），同一埠直接提供控制台介面
-    const webDist = fileURLToPath(new URL('../../web/dist', import.meta.url));
+    const webDist = options.webRoot ?? fileURLToPath(new URL('../../web/dist', import.meta.url));
     if (options.serveWeb !== false && existsSync(webDist)) {
       // wildcard 模式按請求動態查詢檔案：重新構建前端後無需重啟服務端
       await app.register(fastifyStatic, { root: webDist });
@@ -703,7 +711,7 @@ export async function startServer(options: StartServerOptions = {}): Promise<Run
     budgetTimer.unref();
     timers.push(budgetTimer);
 
-    // 上游版本檢查（P1-14）：真真實模式下核對本機 Codex CLI 的版本是否在測試過的範圍內；不在範圍內只提示，不阻止啟動
+    // 上游版本檢查（P1-14）：真實模式下核對本機 Codex CLI 的版本是否在測試過的範圍內；不在範圍內只提示，不阻止啟動
     if (runtimeMode === 'real' && !options.adapters) {
       void checkCodexVersion(env.ACC_CODEX_BIN || 'codex').then((warning) => {
         if (warning) notice(warning);
@@ -876,8 +884,9 @@ function parseMaxCostUsd(raw: string | undefined, name = 'ACC_MAX_COST_USD'): nu
   return value;
 }
 
-/** 應用版本號（根目錄 package.json 的 version）；讀不到時為 undefined。 */
+/** 應用版本號（根目錄 package.json 的 version；桌面版打包後由 ACC_APP_VERSION 傳入）；讀不到時為 undefined。 */
 const APP_VERSION: string | undefined = (() => {
+  if (process.env.ACC_APP_VERSION) return process.env.ACC_APP_VERSION;
   try {
     const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('../../../package.json', import.meta.url)), 'utf8')) as { version?: string };
     return pkg.version;

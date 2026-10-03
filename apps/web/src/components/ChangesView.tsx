@@ -3,6 +3,7 @@ import { api } from '../api';
 import { time } from '../format';
 import type { TaskDetail } from '../types';
 import { GroupCompare } from './GroupCompare';
+import { askText } from './TextPrompt';
 
 interface DiffResult {
   files: Array<{ status: 'A' | 'M' | 'D'; path: string }>;
@@ -53,7 +54,13 @@ export function ChangesView({ detail, onChanged, onError }: { detail: TaskDetail
 
   // 從檢查點分叉（P2-3）：需要工作目錄是 git 倉庫；新任務出現在左邊的任務列表裡
   const fork = async (seq: number) => {
-    const prompt = window.prompt('從這一輪結束時的狀態開一個新任務（在新的 worktree 裡，原任務不受影響）。\n請輸入新任務要做什麼：');
+    const prompt = await askText({
+      title: '從這一輪分叉',
+      message: '從這一輪結束時的狀態開一個新任務（在新的 worktree 裡，原任務不受影響）。',
+      placeholder: '新任務要做什麼？',
+      confirmLabel: '建立分叉任務',
+      required: true,
+    });
     if (!prompt?.trim()) return;
     try {
       await api.fork(taskId, seq, prompt.trim());

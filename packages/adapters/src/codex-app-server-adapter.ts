@@ -475,7 +475,7 @@ export class CodexAppServerAdapter implements AgentAdapter {
       throw new Error(`Codex resumed thread ${response.thread.id} instead of ${threadId}`);
     }
     if (typeof response.cwd !== 'string' || !sameWorkspacePath(response.cwd, cwd)) {
-      // 服務端沒有采用我們要求的工作目錄（例如回到了主倉庫）：不能在錯誤的目錄裡繼續幹活
+      // 服務端沒有採用我們要求的工作目錄（例如回到了主倉庫）：不能在錯誤的目錄裡繼續幹活
       throw new AdapterPreconditionError(
         CODEX_RESUME_CWD_MISMATCH,
         `Codex resumed thread ${threadId} in ${String(response.cwd)} instead of ${cwd}; refusing to continue in a different workspace`,
@@ -616,7 +616,7 @@ export class CodexAppServerAdapter implements AgentAdapter {
     this.connecting ??= (async () => {
       const transport = this.options.transportFactory?.() ?? spawnCodexTransport({ onStderr: this.options.onStderr, env: this.runtimeEnv() });
       const client = new CodexRpcClient(transport);
-      // 連線關閉之後管道里殘留的訊息一律丟棄：那一輪的結局已經由 handleClose 報告，不能再冒出第二個終態
+      // 連線關閉之後管道裡殘留的訊息一律丟棄：那一輪的結局已經由 handleClose 報告，不能再冒出第二個終態
       client.onNotification((method, params) => {
         // Windows 沙箱配置完成（P2-8）：不屬於任何執行緒，直接交給等待它的 setupIsolation
         if (method === 'windowsSandbox/setupCompleted') {

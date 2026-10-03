@@ -1,6 +1,6 @@
 import { CodexRpcClient, spawnCodexTransport } from 'file:///D:/codes/ai/AgentBox/agent-control-center-claude/packages/adapters/src/codex-rpc.ts';
 process.on('exit', (c) => console.log('process exit code', c));
-// 模拟 codex 已关闭 stdin 但外层 shell 仍存活
+// 模擬 codex 已關閉 stdin 但外層 shell 仍存活
 const transport = spawnCodexTransport({ command: 'node -e "process.stdin.destroy(); setTimeout(()=>{}, 1500)"' });
 const client = new CodexRpcClient(transport);
 client.onClose((r) => console.log('client closed:', r));

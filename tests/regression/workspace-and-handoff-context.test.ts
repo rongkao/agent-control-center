@@ -51,7 +51,7 @@ describe('M-4：對話任務的工作區互斥', () => {
     await rec.waitFor((e) => e.type === 'agent.status' && e.data.status === 'completed');
     await orchestrator.idle();
 
-    // 另一個任務在倉庫根目錄里正在工作
+    // 另一個任務在倉庫根目錄裡正在工作
     await orchestrator.createTask({ title: 'busy', prompt: 'long job', agentId: 'claude', workflow: 'manual', cwd: repo });
     await rec.waitFor((e) => e.type === 'agent.status' && e.data.status === 'coding' && rec.events.filter((x) => x.type === 'agent.status' && x.data.status === 'coding').length >= 2);
     await orchestrator.idle();

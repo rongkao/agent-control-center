@@ -20,9 +20,11 @@
     "dev:real": "cross-env ACC_RUNTIME_MODE=real npm run dev",
     "doctor": "node scripts/doctor.mjs",
     "dump-run": "node --import tsx scripts/dump-run.ts",
-    "lint": "eslint packages apps/server",
+    "lint": "eslint packages apps/server apps/desktop/src",
     "check:codex-protocol": "node scripts/check-codex-protocol.mjs",
-    "bench:events": "tsx scripts/bench-events.ts"
+    "bench:events": "tsx scripts/bench-events.ts",
+    "desktop": "node apps/desktop/scripts/build.mjs --no-package && electron apps/desktop/stage",
+    "desktop:dist": "node apps/desktop/scripts/build.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

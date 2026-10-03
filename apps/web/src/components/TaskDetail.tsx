@@ -8,6 +8,7 @@ import type { Agent, PendingApproval, TaskDetail as Detail, UnifiedEvent } from 
 import { ApprovalDialog } from './ApprovalDialog';
 import { ChatPanes, resolveApprovalWithResume } from './ChatPanes';
 import { ChangesView } from './ChangesView';
+import { askText } from './TextPrompt';
 
 interface Props {
   detail: Detail;
@@ -198,7 +199,7 @@ export function TaskDetail({ detail, agents, streams, onChanged, onContinued, on
   );
 }
 
-/** 對話窗格里顯示哪些 agent：所有可對話的 agent（Claude/Codex）+ 本任務用到的測試執行器。 */
+/** 對話窗格裡顯示哪些 agent：所有可對話的 agent（Claude/Codex）+ 本任務用到的測試執行器。 */
 function chatAgentIds(detail: Detail, agents: Agent[]): string[] {
   const ids = agents.filter((a) => a.kind !== 'test').map((a) => a.id);
   const ws = detail.run?.workflowState;
@@ -379,7 +380,7 @@ function TestConfigCard({ detail, busy, onAct }: { detail: Detail; busy: boolean
   );
 }
 
-/** 流程控制條：評審 / 帶說明重試 / 接受結果 / 停止。和 agent 說話請直接在對話窗格里輸入。 */
+/** 流程控制條：評審 / 帶說明重試 / 接受結果 / 停止。和 agent 說話請直接在對話窗格裡輸入。 */
 function GateBar({
   detail,
   agents,
@@ -436,12 +437,15 @@ function GateBar({
           disabled={busy}
           title="停止當前 Agent 的工作，把任務連同上下文交給另一個 Agent 繼續"
           onClick={() => {
-            const reason = prompt(`確定換 ${a.name} 接手嗎？
-目前的 AI 會停下，任務連同上下文交給 ${a.name} 繼續。
-
-有什麼要特別交代的嗎？（可留空，按「取消」則不換）`, '');
-            if (reason === null) return;
-            onAct(() => api.reassign(task.id, a.id, reason || undefined));
+            void askText({
+              title: `換 ${a.name} 接手`,
+              message: `目前的 AI 會停下，任務連同上下文交給 ${a.name} 繼續。
+有什麼要特別交代的嗎？（可以留空）`,
+              confirmLabel: `換 ${a.name} 接手`,
+            }).then((reason) => {
+              if (reason === null) return;
+              onAct(() => api.reassign(task.id, a.id, reason.trim() || undefined));
+            });
           }}
         >
           換 {a.name} 接手

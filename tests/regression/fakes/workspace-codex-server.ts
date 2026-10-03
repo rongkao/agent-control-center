@@ -8,7 +8,7 @@ import { FakeCodexServer, type CodexScript, type FakeCodexDisk } from '../../fak
  * - 記住 thread/start 時執行緒的 cwd（跨“程序重啟”共享，放在 threadCwds 裡）；
  * - thread/resume 的響應報告“服務端實際使用的 cwd”：請求裡帶了 cwd 覆蓋值就用它，否則是執行緒建立時的 cwd，
  *   與真實 app-server 一致（原替身固定回報 '/w'）；
- * - resumeCwdOverride：強制讓 thread/resume 回報另一個目錄，模擬服務端沒有采用我們要求的工作目錄；
+ * - resumeCwdOverride：強制讓 thread/resume 回報另一個目錄，模擬服務端沒有採用我們要求的工作目錄；
  * - holdTurnCompletion：扣住 turn/completed 通知，讓回合停在“進行中”，模擬重啟時 agent 正在工作。
  */
 export class WorkspaceCodexServer {

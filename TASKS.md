@@ -611,5 +611,16 @@ Titles only; see `docs/ANALYSIS_REPORT.md` §7 (「P2：中期」).
 - [ ] Intelligent router based on task complexity.
 - [ ] DAG workflows.
 - [ ] Pluggable policy engine.
-- [ ] Tauri desktop wrapper.
+- [x] Desktop wrapper (Electron instead of Tauri: the server needs Node 24 and `node:sqlite`, which Electron 44 ships).
+  - `apps/desktop`: the server runs in an Electron `utilityProcess` (`src/server-entry.ts`, same `startServer` as the CLI, port 8788 with
+    a random-port fallback); the window loads the tokened access URL (same cookie login as the web version). Shares the CLI data
+    directory and single-instance lock; `.env` in the data directory; default workspace chosen on first run and changeable from the
+    menu; graceful shutdown on close; crash dialog with restart; the access token is masked in the desktop log; external links open
+    in the system browser; `window.prompt` replaced by an in-page dialog (Electron does not implement it).
+  - Build: `npm run desktop:dist` (esbuild bundles our TypeScript, third-party packages installed into `apps/desktop/stage`,
+    electron-builder NSIS installer, Traditional Chinese UI, per-user install, unsigned). `@anthropic-ai/**` is unpacked from asar and
+    `ACC_CLAUDE_EXECUTABLE` points the SDK at the unpacked `claude.exe`. `npm run desktop` runs the staged app without installing.
+  - Evidence: `ACC_DESKTOP_SMOKE=1` smoke run of the packaged `win-unpacked` exe — mock mode (page, API, graceful exit), real mode
+    (Claude / Codex / test runner ready, isolation status) and one real Claude turn (`ACC_DESKTOP_SMOKE_PROMPT`, replied "OK").
+  - Not done: code signing, auto-update, macOS / Linux packages, system tray.
 - [ ] Remote multi-machine workers.

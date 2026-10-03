@@ -445,7 +445,7 @@ describe('H-4 編排器 + SQLite 重啟續接：worktree cwd + review 模式（C
     first.close();
 
     const second = bootCodex(box, disk, threadCwds, script);
-    // 服務端沒有采用我們要求的目錄，而是回到了主倉庫
+    // 服務端沒有採用我們要求的目錄，而是回到了主倉庫
     second.server.resumeCwdOverride = box.repo;
     const report = await second.orchestrator.recover();
     await second.bus.drain();

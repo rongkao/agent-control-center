@@ -1,4 +1,4 @@
-// 只读复现探针：auto 策略下 Claude 并行两次 request_handoff -> codex
+// 唯讀復現探針：auto 策略下 Claude 並行兩次 request_handoff -> codex
 const ROOT = 'file:///D:/codes/ai/AgentBox/agent-control-center-claude';
 const core = await import(`${ROOT}/packages/core/src/index.ts`);
 const storage = await import(`${ROOT}/packages/storage/src/in-memory-store.ts`);
@@ -7,12 +7,12 @@ const adapters = await import(`${ROOT}/packages/adapters/src/claude-agent-sdk-ad
 const WITH_HANDLER = process.argv.includes('--handler');
 if (WITH_HANDLER) process.on('unhandledRejection', (e: any) => console.log('[unhandledRejection]', e?.message));
 
-// 假 Claude 运行时：只发 system/init，然后挂起直到 abort
+// 假 Claude 執行時：只發 system/init，然後掛起直到 abort
 let capturedOptions: any;
 const queryFn = ({ prompt, options }: any) => {
   capturedOptions = options;
   const iter = (async function* () {
-    // 消费第一条用户消息
+    // 消費第一條使用者訊息
     const it = prompt[Symbol.asyncIterator]();
     await it.next();
     yield { type: 'system', subtype: 'init', session_id: 'claude-native-1', model: 'fake', cwd: '.', permissionMode: 'default' } as any;
@@ -21,7 +21,7 @@ const queryFn = ({ prompt, options }: any) => {
   return Object.assign(iter, { interrupt: async () => undefined });
 };
 
-// 假 Codex adapter：start 需要 300ms（模拟 app-server 启动 + thread/start）
+// 假 Codex adapter：start 需要 300ms（模擬 app-server 啟動 + thread/start）
 const codex = {
   info: { id: 'codex', name: 'Codex', kind: 'codex', ready: true, capabilities: ['review'] },
   starts: 0,
@@ -55,10 +55,10 @@ const tool = tools['request_handoff'];
 const cb = tool.callback ?? tool.handler;
 
 process.on('exit', (code) => console.log('process exit code', code));
-// Claude 同一轮中两次调用 request_handoff（并行）
+// Claude 同一輪中兩次呼叫 request_handoff（並行）
 const r: any[] = [];
 r.push(await cb({ to: 'codex', instruction: 'seq A', content: 'x' }, {}));
-await new Promise((res) => setTimeout(res, 50)); // 两次顺序调用之间间隔 50ms
+await new Promise((res) => setTimeout(res, 50)); // 兩次順序呼叫之間間隔 50ms
 r.push(await cb({ to: 'codex', instruction: 'seq B', content: 'y' }, {}));
 console.log('tool results returned:', r.length);
 await new Promise((res) => setTimeout(res, 1500));

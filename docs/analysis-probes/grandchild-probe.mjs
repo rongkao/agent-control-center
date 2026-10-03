@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-// 模擬測試命令：啟動一個繼承 stdout 的後台孫程序（如測試里拉起的 dev server），自己立即退出
+// 模擬測試命令：啟動一個繼承 stdout 的後台孫程序（如測試裡拉起的 dev server），自己立即退出
 const cmd = `node -e "require('child_process').spawn(process.execPath,['-e','setTimeout(()=>{},6000)'],{detached:true,stdio:'inherit'}).unref(); console.log('parent done')"`;
 const t0 = Date.now();
 const child = spawn(cmd, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });

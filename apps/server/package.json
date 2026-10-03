@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/server.ts",
+  "exports": {
+    ".": "./src/server.ts",
+    "./data-paths": "./src/data-paths.ts"
+  },
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --watch --import tsx src/index.ts --dev",
     "build": "tsc -p tsconfig.json",

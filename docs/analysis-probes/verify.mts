@@ -1,4 +1,4 @@
-// 只读验证脚本：在临时数据库上复现审计中的几个恢复/持久化场景（不修改项目文件）
+// 唯讀驗證腳本：在臨時資料庫上覆現審計中的幾個恢復/持久化場景（不修改專案檔案）
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,7 +15,7 @@ function boot(path: string, adapters: any[]) {
   return { store, bus, o };
 }
 
-// S1：终态 run 重启后 setHandoffPolicy → 序号冲突；快照已被改写但没有事件
+// S1：終態 run 重啟後 setHandoffPolicy → 序號衝突；快照已被改寫但沒有事件
 {
   const path = db();
   const world = new FakeWorld();
@@ -35,7 +35,7 @@ function boot(path: string, adapters: any[]) {
   p2.store.close();
 }
 
-// S2：手动任务两个 agent，cancel 只停 currentAgentId；另一个 agent 的审批在 CANCELLED 后仍可批准并执行
+// S2：手動任務兩個 agent，cancel 只停 currentAgentId；另一個 agent 的審批在 CANCELLED 後仍可批准並執行
 {
   const path = db();
   const world = new FakeWorld();
@@ -56,7 +56,7 @@ function boot(path: string, adapters: any[]) {
   p.store.close();
 }
 
-// S3：第二个进程打开同一个库并 recover，而第一个进程仍在运行 → 序号冲突
+// S3：第二個程序開啟同一個庫並 recover，而第一個程序仍在執行 → 序號衝突
 {
   const path = db();
   const world = new FakeWorld();
@@ -76,7 +76,7 @@ function boot(path: string, adapters: any[]) {
   p2.store.close();
 }
 
-// S4：工作流已推进到 test（awaiting=test）但派发前崩溃；恢复时续接的是 currentAgentId（claude）而不是 test
+// S4：工作流已推進到 test（awaiting=test）但派發前崩潰；恢復時續接的是 currentAgentId（claude）而不是 test
 {
   const path = db();
   const world = new FakeWorld();
@@ -84,7 +84,7 @@ function boot(path: string, adapters: any[]) {
   const test1 = new ScriptedAdapter(world, [], { id: 'test', kind: 'test' });
   const p1 = boot(path, [claude1, test1]);
   const task = await p1.o.createTask({ title: 'x', prompt: 'y', agentId: 'claude', testCommand: 'npm test' });
-  // 模拟：claude 完成信号已持久化、工作流决策已提交，但 executeDirective 之前进程崩溃
+  // 模擬：claude 完成訊號已持久化、工作流決策已提交，但 executeDirective 之前程序崩潰
   const run = (await p1.store.getRun(task.runId))!;
   run.agentSessions.claude!.status = 'completed';
   run.workflowState!.step = 'test';

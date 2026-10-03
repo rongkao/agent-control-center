@@ -12,7 +12,7 @@ function boot(store: any, claudeOutcomes: any[] = [], codexOutcomes: any[] = [],
 }
 const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', workflow: 'manual' };
 
-// 场景 A: askBoth -> cancel
+// 場景 A: askBoth -> cancel
 {
   const store = new InMemoryControlPlaneStore();
   const env = boot(store, [{ kind: 'silent' }], [{ kind: 'reply', text: 'advice' }]);
@@ -24,7 +24,7 @@ const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', wo
   console.log('A: after cancel status=', after.status, 'claude.cancels=', env.claude.cancels, 'codex.cancels=', env.codex.cancels, 'sessions=', Object.fromEntries(Object.entries(after.agentSessions).map(([k, v]: any) => [k, v.status])));
 }
 
-// 场景 C: 对话模式先让 claude 工作，再问 codex -> cancel
+// 場景 C: 對話模式先讓 claude 工作，再問 codex -> cancel
 {
   const store = new InMemoryControlPlaneStore();
   const env = boot(store, [{ kind: 'silent' }], [{ kind: 'reply', text: 'advice' }]);
@@ -36,7 +36,7 @@ const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', wo
   console.log('C: after cancel claude.cancels=', env.claude.cancels, 'codex.cancels=', env.codex.cancels);
 }
 
-// 场景 B: askBoth, claude 仍在工作 -> 重启 recover
+// 場景 B: askBoth, claude 仍在工作 -> 重啟 recover
 {
   const store = new InMemoryControlPlaneStore();
   const env = boot(store, [{ kind: 'silent' }], [{ kind: 'reply', text: 'advice' }]);
@@ -49,7 +49,7 @@ const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', wo
   console.log('B: runtime.error after recover=', evs.filter((e: any) => e.type === 'runtime.error').map((e: any) => e.data.code));
 }
 
-// 场景 B2: 对照 - 单 agent 工作中重启
+// 場景 B2: 對照 - 單 agent 工作中重啟
 {
   const store = new InMemoryControlPlaneStore();
   const env = boot(store, [{ kind: 'silent' }], []);
@@ -59,7 +59,7 @@ const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', wo
   console.log('B2: report=', JSON.stringify(report), 'claude2.calls=', env2.claude.calls.map((c: any) => c.via));
 }
 
-// 场景 D: 预算停止 - maxAgentCalls? 用 wallclock
+// 場景 D: 預算停止 - maxAgentCalls? 用 wallclock
 {
   let t = 1000;
   const store = new InMemoryControlPlaneStore();
@@ -74,7 +74,7 @@ const CHAT = { title: 'chat', prompt: 'Fix the login bug', agentId: 'claude', wo
   console.log('D: status=', after.status, 'claude.cancels=', claude.cancels, 'codex.cancels=', codex.cancels);
 }
 
-// 场景 E: reassign 在 askBoth 后
+// 場景 E: reassign 在 askBoth 後
 {
   const store = new InMemoryControlPlaneStore();
   const env = boot(store, [{ kind: 'reply', text: 'claude halfway' }], [{ kind: 'reply', text: 'codex advice' }], { kind: 'silent' });

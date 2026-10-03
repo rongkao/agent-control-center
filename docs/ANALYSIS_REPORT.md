@@ -364,7 +364,7 @@
 **新手上手**
 - 首次執行時，不檢查 claude/codex 是否已登入（“執行時就緒”是寫死的常量，見 L-18）；不提示 Codex Windows 沙箱需要一次性配置（僅 elevated/unelevated 實現需要）；也不提示本機的 gemini 0.24.0 需要升級才能用 `--acp`。→ P1-16
 - 只有 README 裡的快速開始，沒有 [X] 那樣面向終端使用者的使用說明。→ P1-13
-- 預設是 mock 模式，而且 `.env` 不會被載入（L-26），使用者不容易發現真真實模式。→ P1-16
+- 預設是 mock 模式，而且 `.env` 不會被載入（L-26），使用者不容易發現真實模式。→ P1-16
 
 **升級相容**
 - 跨 ACC 版本的在途 run：快照只做了資料遷移，沒有記錄行為版本（應用版本戳）。→ P1-14
@@ -588,7 +588,7 @@
 | 做法 | 借鑑自 | 落到哪個模組 | 工作量 | 價值 | 路線圖 |
 |---|---|---|---|---|---|
 | 跨任務的審批收件箱，加上頁面標題、favicon 和桌面通知 | Emdash、octomux | `App.tsx`、新增 Inbox 元件 | S | 高 | P1-10 |
-| 快照里正式記錄 blocker、nextAction、activeAgents 三個欄位 | ORCHESTRATOR_SPEC、AG-UI 的 StepStarted | `projection.ts`、`TaskDetail.tsx` | M | 高 | P1-10 |
+| 快照裡正式記錄 blocker、nextAction、activeAgents 三個欄位 | ORCHESTRATOR_SPEC、AG-UI 的 StepStarted | `projection.ts`、`TaskDetail.tsx` | M | 高 | P1-10 |
 | 單個 agent 的單輪中斷按鈕 | Open WebUI、Claude.ai 的做法 | `apps/server`、`ChatPanes.tsx` | S | 中 | P1-10 |
 | WS 支援按序號續傳，並給每個訂閱設背壓上限 | t3code 的 LiveStreamBudget | `apps/server/src/index.ts` | S | 中 | P1-10 |
 | 自主度預設（3～5 檔命名組合） | Plandex、goose | `NewTask.tsx`、`RunSettings` | S | 中 | 儲備（P2-7 時評估） |
@@ -985,7 +985,7 @@
   - 修復 doctor；first-run 檢查每一步的退出碼；宣告 engines。
   - 載入 `.env`，並用 zod 校驗；`npm start` 不再依賴開發依賴。
   - 啟動時檢查：claude/codex 是否已登入；Codex Windows 沙箱是否需要配置（只對 elevated/unelevated 實現提示，MXC 實現下就緒狀態恆為 ready）；gemini 版本。
-  - 在介面和 README 裡讓真真實模式可以顯式切換。
+  - 在介面和 README 裡讓真實模式可以顯式切換。
   - Vite 代理埠改為讀配置；新增 `dev:real` 腳本；新增 `dump-run` 除錯命令。
 - 驗收：
   - Windows 上 doctor 不再誤報。

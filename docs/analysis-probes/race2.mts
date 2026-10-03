@@ -13,7 +13,7 @@ try { await orchestrator.sendMessage(task.id, 'codex', 'hello codex'); console.l
 const run = (await store.getRun(task.runId))!;
 const approval = run.pendingApprovals[0]!;
 console.log('status before:', run.status, 'approval kind:', (approval.payload as any)?.kind);
-// 模拟两个浏览器标签页同时点“批准”
+// 模擬兩個瀏覽器標籤頁同時點“批准”
 const results = await Promise.allSettled([
   orchestrator.resolveApproval(task.id, approval.id, 'approve'),
   orchestrator.resolveApproval(task.id, approval.id, 'approve'),

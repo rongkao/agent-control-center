@@ -4,6 +4,9 @@
 
 ## 快速開始（中文）
 
+> **想用桌面版？** 執行 `npm run desktop:dist` 會在 `apps/desktop/release/` 產生 Windows 安裝程式（`AgentControlCenter-Setup-版本.exe`），
+> 安裝後從開始選單或桌面捷徑開啟，不需要自己開終端機；也可以用 `npm run desktop` 不安裝直接執行。說明見 [docs/使用說明.md](docs/使用說明.md)。
+
 **需要準備：**
 
 - Node.js 24 或更新版本（在終端輸入 `node -v`，看到 `v24.x` 或更高就可以）。
@@ -21,10 +24,10 @@
 
    ```bash
    npm start           # 體驗模式：不呼叫任何 AI、不花錢，用來熟悉介面
-   npm run start:real  # 真真實模式：Claude、Codex 和你填的測試命令會真的執行
+   npm run start:real  # 真實模式：Claude、Codex 和你填的測試命令會真的執行
    ```
 
-3. 啟動後瀏覽器會**自動開啟**控制台。沒有自動開啟的話，在終端裡找到“訪問連結”下面那一行（形如 `http://127.0.0.1:8788/?token=……`），整行復制到瀏覽器位址列開啟。
+3. 啟動後瀏覽器會**自動開啟**控制台。沒有自動開啟的話，在終端裡找到“訪問連結”下面那一行（形如 `http://127.0.0.1:8788/?token=……`），整行複製到瀏覽器位址列開啟。
 4. 點「新任務」，填工作目錄（專案資料夾的完整路徑，例如 `D:\projects\my-app`），寫下要 AI 做的事，開始。
 5. 用完在終端裡按 `Ctrl+C` 關閉。下次啟動時，沒做完的任務會自動接著做。
 
@@ -87,7 +90,7 @@ $env:ACC_NO_OPEN = "1"; npm start
 
 ### 開發模式
 
-前端熱更新（埠 5174，可用 `ACC_WEB_PORT` 修改）：`npm run dev`，然後開啟終端裡列印的“訪問連結”（指向 5174 埠；開發模式不會自動開啟瀏覽器）；真真實模式開發：`ACC_RUNTIME_MODE=real npm run dev`。
+前端熱更新（埠 5174，可用 `ACC_WEB_PORT` 修改）：`npm run dev`，然後開啟終端裡列印的“訪問連結”（指向 5174 埠；開發模式不會自動開啟瀏覽器）；真實模式開發：`ACC_RUNTIME_MODE=real npm run dev`。
 
 ---
 

@@ -98,7 +98,7 @@ export function createRedactor(options: RedactorOptions = {}): Redactor {
     return changed ? next : value;
   };
 
-  // 沒有變化時返回原物件（不復制）
+  // 沒有變化時返回原物件（不複製）
   return <T>(value: T): T => walk(value, 0) as T;
 }
 
@@ -111,7 +111,7 @@ export interface SecretFinding {
   preview: string;
 }
 
-/** 在一段文字里找疑似金鑰。 */
+/** 在一段文字裡找疑似金鑰。 */
 export function scanTextForSecrets(text: string): Array<Omit<SecretFinding, 'path' | 'line'>> {
   const found: Array<Omit<SecretFinding, 'path' | 'line'>> = [];
   for (const rule of SECRET_RULES) {

@@ -13,7 +13,7 @@ class SlowAdapter {
   async start(input: any, emit: Sink) {
     this.calls.push('start');
     const sid = `${this.info.id}-${++this.n}`;
-    // 模拟 init 前的慢启动：agent.started 之前等待外部放行
+    // 模擬 init 前的慢啟動：agent.started 之前等待外部放行
     await new Promise<void>((r) => (this.gate = r));
     const ids = { projectId: input.projectId, taskId: input.taskId, runId: input.runId };
     await emit({ ...ids, agentId: this.info.id, sessionId: sid, type: 'agent.started', severity: 'info', confidence: 'confirmed', data: { providerSessionId: 'p-' + sid, adapterType: this.info.kind } });
@@ -35,7 +35,7 @@ async function scenarioA() {
   const claude = new SlowAdapter('claude');
   orch.registerAdapter(claude as any);
   const p = orch.createTask({ title: 't', prompt: 'p', agentId: 'claude', workflow: 'manual' } as any);
-  // 等待 start 进入 gate
+  // 等待 start 進入 gate
   while (!claude.gate) await new Promise((r) => setTimeout(r, 5));
   const tasks = await (store as any).listTasks();
   const task = tasks[0];

@@ -169,7 +169,7 @@ export function gitHooksDirs(cwd: string | undefined): string[] {
   }
 }
 
-/** 命令文字里提到 hooks 目錄時用來匹配的名字：在工作目錄之內用相對路徑（例如 .husky），之外用絕對路徑。 */
+/** 命令文字裡提到 hooks 目錄時用來匹配的名字：在工作目錄之內用相對路徑（例如 .husky），之外用絕對路徑。 */
 export function hooksDirNames(hooksDirs: readonly string[], cwd: string | undefined): string[] {
   const lib = process.platform === 'win32' ? win32Path : posixPath;
   return hooksDirs.map((dir) => {
@@ -181,7 +181,7 @@ export function hooksDirNames(hooksDirs: readonly string[], cwd: string | undefi
 const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * 命令文字里提到的受保護路徑（Bash / PowerShell 命令裡的寫入無法可靠識別，只用來把審批標成高風險）。
+ * 命令文字裡提到的受保護路徑（Bash / PowerShell 命令裡的寫入無法可靠識別，只用來把審批標成高風險）。
  * options.hooksDirNames：會話實際生效的 hooks 目錄（見 hooksDirNames，例如 ['.husky']）。
  */
 export function commandProtectedPaths(command: string, options: { hooksDirNames?: readonly string[] } = {}): string[] {

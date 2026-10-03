@@ -1916,7 +1916,7 @@ export class Orchestrator {
     }
 
     const session = run.agentSessions[agentId];
-    // 工作區互斥（P1-4 / M-4）：對話任務同樣參與——這一輪能改檔案，而另一個任務里正有 AI 在改同一個（或包含關係的）資料夾時拒絕
+    // 工作區互斥（P1-4 / M-4）：對話任務同樣參與——這一輪能改檔案，而另一個任務裡正有 AI 在改同一個（或包含關係的）資料夾時拒絕
     if (!run.workflowState && source !== 'orchestrator' && !isReadOnlyAgentMode(dispatch.mode) && meta?.advisory !== true) {
       const mode = session ? asAgentMode(session.metadata?.mode) : 'implement';
       if (!isReadOnlyAgentMode(mode)) await this.assertWorkspaceNotBusy(task, run);

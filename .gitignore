@@ -6,7 +6,7 @@ coverage/
 *.log
 .DS_Store
 agent-control.db
-# 迁移留下的旧库备份、单实例锁及其提示文件（agent-control.db.bak-*、agent-control.db.lock 等）
+# 遷移留下的舊庫備份、單實例鎖及其提示檔案（agent-control.db.bak-*、agent-control.db.lock 等）
 agent-control.db.*
 
 *.tsbuildinfo
@@ -17,5 +17,5 @@ dist-ts/
 scripts/tmp/
 .acc-worktrees/
 logs/
-# scripts/clone-references.ps1 克隆的参考仓库（L-31）：不能以嵌入仓库的形式进入索引
+# scripts/clone-references.ps1 克隆的參考倉庫（L-31）：不能以嵌入倉庫的形式進入索引
 references/

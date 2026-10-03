@@ -1,7 +1,7 @@
 import { EventBus, Orchestrator } from 'file:///D:/codes/ai/AgentBox/agent-control-center-claude/packages/core/src/index.ts';
 import { InMemoryControlPlaneStore } from 'file:///D:/codes/ai/AgentBox/agent-control-center-claude/packages/storage/src/in-memory-store.ts';
 
-// 模拟真实 Claude adapter：每轮 model.turn.completed（无工具进展）后 agent.status completed
+// 模擬真實 Claude adapter：每輪 model.turn.completed（無工具進展）後 agent.status completed
 class ChatAgent {
   info: any; calls: string[] = []; cancels = 0; n = 0; sessions = new Map<string, any>();
   constructor(id: string, kind: string) { this.info = { id, name: id, kind, ready: true, capabilities: [] }; }
@@ -22,7 +22,7 @@ const bus = new EventBus();
 const orch = new Orchestrator(store as any, bus, { now: () => now });
 const claude = new ChatAgent('claude', 'claude');
 orch.registerAdapter(claude as any);
-// workflow 无测试命令 + 评审闸门，默认预算（maxStallCount=3）
+// workflow 無測試命令 + 評審閘門，預設預算（maxStallCount=3）
 const task = await orch.createTask({ title: 't', prompt: 'p', agentId: 'claude', reviewGate: true });
 const show = async (label: string) => { const r = (await store.getRun(task.runId))!; console.log(label, r.status, 'step=', r.currentStep, 'wf=', r.workflowState?.step, 'await=', r.workflowState?.awaitingAgentId, 'stall=', r.budget.stallCount, 'calls=', claude.calls.join(',')); };
 await show('B0');
@@ -33,7 +33,7 @@ await orch.resolveGate(task.id, 'accept'); await show('B4-accept');
 const evs = await store.listEvents(task.runId);
 console.log(evs.slice(-14).map((e: any) => `${e.type}${e.data.status ? ':' + e.data.status : ''}${e.data.limit ? ':' + e.data.limit : ''}`).join(' | '));
 
-// manual chat 任务：30 分钟后无法 accept
+// manual chat 任務：30 分鐘後無法 accept
 {
   const store2 = new InMemoryControlPlaneStore(); const bus2 = new EventBus(); let t = 0;
   const o2 = new Orchestrator(store2 as any, bus2, { now: () => t });

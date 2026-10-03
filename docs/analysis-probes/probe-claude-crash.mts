@@ -4,7 +4,7 @@ import { ClaudeAgentSdkAdapter } from 'file:///D:/codes/ai/AgentBox/agent-contro
 
 let queries = 0;
 const consumed: string[] = [];
-// 假运行时：读取第一条提示，发 init，然后抛异常（模拟 CLI 进程崩溃）
+// 假執行時：讀取第一條提示，發 init，然後拋異常（模擬 CLI 程序崩潰）
 const queryFn = ({ prompt }: any) => {
   queries++;
   const it = prompt[Symbol.asyncIterator]();

@@ -359,7 +359,7 @@ function codexConfigEnvNamesByLine(toml: string, add: (name: string) => void): v
 }
 
 /**
- * 從 Codex 的 config.toml 文字里取出點名要用的環境變數名（只取名字，不讀取任何值，P0 第三批審查）：
+ * 從 Codex 的 config.toml 文字裡取出點名要用的環境變數名（只取名字，不讀取任何值，P0 第三批審查）：
  * - 模型提供方的 `env_key`（自定義提供方的 API key）、`env_http_headers` 的值（請求頭取值的變數）；
  * - MCP 伺服器的 `bearer_token_env_var`、`env_vars`（多行陣列、`{ name = ... }` 寫法都認）；
  * - 不論寫在 `[model_providers.x]` 表裡、內聯表（`model_providers.x = { ... }`）裡，還是 `[profiles.*]` 下面。
