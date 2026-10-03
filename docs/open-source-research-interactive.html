@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Agent Control Center — Open-source-informed Architecture v1</title>
+<style>
+:root{
+ --bg:#f5f7fb;--panel:#fff;--line:#dfe6f1;--text:#172033;--muted:#6f7f95;
+ --blue:#2f6fed;--purple:#7357e8;--green:#14a36f;--orange:#ec9d21;--red:#d94b5b;--cyan:#1fa4d8;
+ --shadow:0 10px 28px rgba(35,60,105,.08)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:20px}.logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple))}
+header .meta{font-size:12px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 71px)}
+nav{background:#fff;border-right:1px solid var(--line);padding:16px;position:sticky;top:71px;height:calc(100vh - 71px);overflow:auto}
+nav button{width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:10px;color:#4e6078;cursor:pointer;margin-bottom:5px;font-weight:650}
+nav button:hover,nav button.active{background:#edf3ff;color:var(--blue)}
+main{padding:22px;max-width:1600px}
+.hero{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px}
+h1{margin:0 0 8px;font-size:28px}h2{margin:0 0 12px;font-size:21px}h3{margin:0 0 9px;font-size:16px}
+p{line-height:1.65;color:#52647d}.muted{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:4px 9px;border-radius:99px;background:#edf3ff;color:var(--blue);font-size:11px;font-weight:800;margin-right:6px}
+.grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.src{padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}
+.src:hover{border-color:#aec8fa;box-shadow:0 10px 24px rgba(47,111,237,.08)}
+.src strong{display:block;margin-bottom:6px}.src small{color:var(--muted);line-height:1.45}
+.score{float:right;font-size:11px;border-radius:99px;padding:3px 7px;background:#eaf8f1;color:#128358}
+.section{margin:22px 0}.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:10px}
+.arch{display:grid;gap:12px}
+.row{display:grid;gap:12px}.r1{grid-template-columns:repeat(4,1fr)}.r2{grid-template-columns:1.2fr 1fr 1fr}.r3{grid-template-columns:repeat(4,1fr)}.r4{grid-template-columns:repeat(3,1fr)}
+.node{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:110px;cursor:pointer;position:relative}
+.node:hover{border-color:#aec8fa}.node b{display:block;margin-bottom:6px}.node span{font-size:12px;color:#63758d;line-height:1.5}
+.blue{border-top:4px solid var(--blue)}.purple{border-top:4px solid var(--purple)}.green{border-top:4px solid var(--green)}.orange{border-top:4px solid var(--orange)}.red{border-top:4px solid var(--red)}.cyan{border-top:4px solid var(--cyan)}
+.arrow{text-align:center;color:#95a7bd;font-size:20px;margin:-2px 0}
+.bus{border:1px dashed #aebfdb;background:linear-gradient(90deg,#eef4ff,#f5efff);border-radius:12px;padding:12px;text-align:center;font-weight:800;color:#496079}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+th,td{padding:12px 11px;border-bottom:1px solid #edf1f6;text-align:left;font-size:13px;vertical-align:top}
+th{background:#f7f9fc;color:#52647c}tr:last-child td{border-bottom:0}
+.yes{color:#10835a;font-weight:800}.partial{color:#a46b00;font-weight:800}.no{color:#bd3d4b;font-weight:800}
+.callout{border-left:4px solid var(--blue);background:#f2f6ff;padding:13px 15px;border-radius:10px;margin:10px 0;color:#42556e}
+.flow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.chip{padding:8px 10px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:12px}.fa{color:#97a8bd}
+pre{background:#101827;color:#dce7f7;border-radius:12px;padding:14px;overflow:auto;font-size:12px;line-height:1.55}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.detail{position:fixed;right:20px;bottom:20px;width:420px;max-height:65vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(24,41,74,.18);padding:18px;display:none;z-index:30}
+.detail.open{display:block}.detail .x{float:right;border:0;background:#f0f3f8;border-radius:8px;padding:5px 8px;cursor:pointer}
+.source-list a{display:block;color:var(--blue);text-decoration:none;font-size:12px;margin:6px 0}
+.source-list a:hover{text-decoration:underline}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}nav{display:none}.hero,.two{grid-template-columns:1fr}.grid6{grid-template-columns:1fr 1fr}.r1,.r2,.r3,.r4{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">✦</div>Agent Control Center · Architecture v1</div>
+ <div class="meta">Open-source-informed research · 2026-09-23</div>
+</header>
+<div class="layout">
+<nav>
+ <button class="active" onclick="go('summary')">研究結論</button>
+ <button onclick="go('sources')">6 個核心來源</button>
+ <button onclick="go('matrix')">Adoption Matrix</button>
+ <button onclick="go('arch')">Architecture v1</button>
+ <button onclick="go('orchestrator')">Orchestrator</button>
+ <button onclick="go('event')">Event / State</button>
+ <button onclick="go('resume')">Checkpoint / Resume</button>
+ <button onclick="go('safety')">Safety / Approval</button>
+ <button onclick="go('rules')">不可違反規則</button>
+ <button onclick="go('roadmap')">落地順序</button>
+</nav>
+<main>
+<section id="summary" class="hero">
+ <div class="card">
+  <span class="badge">第一輪原始碼研究結論</span>
+  <h1>不要選一個框架當「總腦」，而是吸收 6 套成熟設計的強項</h1>
+  <p>我們自己的核心應維持 <b>Adapter → Orchestrator → Event Bus → Durable State → UI</b>。Claude / Codex / 其他 AI 只是 runtime provider，不應滲透到 UI 與排程策略。</p>
+  <div class="callout"><b>最大發現：</b>BAT 已經用實戰經驗證明「Renderer API 必須穩定、runtime 在下層適配、每個 session 只能有一個明確 runtime owner」；OpenAI Agents SDK 與 LangGraph 則證明「可暫停/恢復」一定需要明確 state machine + durable snapshot，而不是靠 prompt 記憶。</div>
+ </div>
+ <div class="card">
+  <h3>Architecture v1 的 5 個核心資產</h3>
+  <p>① Unified Agent Adapter<br>② Deterministic Orchestrator<br>③ Unified Event Contract<br>④ Durable Run Snapshot<br>⑤ Human / Safety / Budget Gate</p>
+  <div class="muted">UI、模型、MCP、Worktree 都是可替換模組。</div>
+ </div>
+</section>
+
+<section id="sources" class="section">
+ <div class="section-head"><div><h2>6 個核心參考來源</h2><div class="muted">不是看 README，而是把其真正的 runtime contract / state / events / approval 思路抽出來。</div></div></div>
+ <div class="grid6">
+  <div class="src" onclick="show('bat')"><span class="score">高採用</span><strong>Better Agent Terminal</strong><small>最值得借：穩定 renderer/IPC contract、runtime ownership、Claude/Codex adapter、session resume/worktree。</small></div>
+  <div class="src" onclick="show('hermes')"><span class="score">部分採用</span><strong>Hermes</strong><small>最值得借：agent tree、structured telemetry、shared KV、pub/sub、MCP monitor。Agent 直接互 signal 不照搬。</small></div>
+  <div class="src" onclick="show('langgraph')"><span class="score">高採用</span><strong>LangGraph</strong><small>最值得借：thread_id + checkpoint、interrupt/resume、durable cursor、resume semantics。</small></div>
+  <div class="src" onclick="show('agents')"><span class="score">高採用</span><strong>OpenAI Agents SDK</strong><small>最值得借：SingleStepResult state machine、RunState、guardrail ordering、trace/span hierarchy。</small></div>
+  <div class="src" onclick="show('codex')"><span class="score">直接接入</span><strong>Codex App Server</strong><small>最值得借：thread/turn/item protocol、approval request、queue、goal/budget state、resume。</small></div>
+  <div class="src" onclick="show('maf')"><span class="score">部分採用</span><strong>Microsoft Agent Framework</strong><small>最值得借：workflow events、request_info HITL、checkpoint restore、max_round/max_stall。</small></div>
+ </div>
+</section>
+
+<section id="matrix" class="section">
+ <h2>Adoption Matrix</h2>
+ <table>
+  <thead><tr><th>能力</th><th>主要來源</th><th>決策</th><th>我們的版本</th></tr></thead>
+  <tbody>
+   <tr><td>Renderer/API 穩定契約</td><td>BAT</td><td class="yes">直接採用思想</td><td>UI 永遠只認 Unified API；runtime fallback 在下層處理。</td></tr>
+   <tr><td>Session runtime ownership</td><td>BAT</td><td class="yes">直接採用</td><td>一個 AgentSession 在生命週期內只有一個 Adapter owner。</td></tr>
+   <tr><td>Agent tree / telemetry</td><td>Hermes</td><td class="yes">採用</td><td>AgentNode + Activity + ToolEvent；不要求 Agent 自己上報所有狀態。</td></tr>
+   <tr><td>Cross-agent shared KV</td><td>Hermes</td><td class="partial">部分採用</td><td>改成 Task-scoped SharedContext，禁止全域性任意 key。</td></tr>
+   <tr><td>Agent 直接 signal Agent</td><td>Hermes</td><td class="no">不採用</td><td>所有 handoff 必須經 Orchestrator。</td></tr>
+   <tr><td>Checkpoint / thread cursor</td><td>LangGraph</td><td class="yes">採用</td><td>RunSnapshot + runId + checkpointVersion；SQLite durable。</td></tr>
+   <tr><td>Interrupt / Resume</td><td>LangGraph / Agents SDK / MAF</td><td class="yes">採用</td><td>WAITING_APPROVAL / WAITING_INPUT 均可跨程序恢復。</td></tr>
+   <tr><td>Step state machine</td><td>OpenAI Agents SDK</td><td class="yes">強採用</td><td>CONTINUE / HANDOFF / FINAL / INTERRUPT / FAIL 五類 NextAction。</td></tr>
+   <tr><td>Guardrail ordering</td><td>OpenAI Agents SDK</td><td class="yes">採用</td><td>Input → Tool Input → Side Effect → Tool Output → Final Output。</td></tr>
+   <tr><td>Tracing hierarchy</td><td>OpenAI Agents SDK</td><td class="yes">採用</td><td>Workflow → Turn → Agent → Tool/Model/Guardrail span。</td></tr>
+   <tr><td>Codex thread/turn/item</td><td>Codex App Server</td><td class="yes">直接對映</td><td>Adapter 對應 session/run/item；approval 原生轉 UnifiedEvent。</td></tr>
+   <tr><td>Goal budget / status</td><td>Codex</td><td class="yes">採用概念</td><td>TaskBudget：time/token/round/agent-call/stall。</td></tr>
+   <tr><td>max stall count</td><td>Microsoft Agent Framework</td><td class="yes">採用</td><td>連續 N 輪無有效進展 → HUMAN_GATE / handoff。</td></tr>
+   <tr><td>整套 LangGraph / MAF workflow runtime</td><td>LangGraph / MAF</td><td class="no">不繫結</td><td>自己做精簡 TypeScript Orchestrator，避免 framework lock-in。</td></tr>
+  </tbody>
+ </table>
+</section>
+
+<section id="arch" class="section">
+ <h2>Architecture v1</h2>
+ <div class="arch">
+  <div class="row r1">
+   <div class="node blue" onclick="show('ui')"><b>React Control UI</b><span>Task / Agent / Event / Incident / Approval / Usage，只接受 Unified API。</span></div>
+   <div class="node blue"><b>Agent Status</b><span>running / reviewing / waiting / blocked / failed / completed。</span></div>
+   <div class="node blue"><b>Incident Center</b><span>Confirmed vs Inferred；安全、權限、Runtime、Usage。</span></div>
+   <div class="node blue"><b>Human Control</b><span>Approve / Decline / Retry / Reassign / Stop。</span></div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="row r2">
+   <div class="node cyan"><b>REST Command API</b><span>Create task / message / cancel / approve / resume。</span></div>
+   <div class="node cyan"><b>WebSocket Event API</b><span>UnifiedEvent stream，UI 不輪詢。</span></div>
+   <div class="node cyan"><b>Session Router</b><span>UI Task ↔ AgentSession ↔ Runtime thread/session。</span></div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="row r2">
+   <div class="node purple" onclick="show('orch')"><b>Orchestrator</b><span>唯一能決定下一步與跨 Agent handoff 的核心。</span></div>
+   <div class="node purple"><b>Task / Run State Machine</b><span>RunSnapshot、NextAction、resume、checkpoint。</span></div>
+   <div class="node red"><b>Policy / Human / Budget Gate</b><span>Approval、Safety、loop、stall、quota、budget。</span></div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="bus">Unified Event Bus · 所有 runtime 事件先 normalize，再寫 EventLog / State / UI / Metrics</div>
+  <div class="row r3">
+   <div class="node orange"><b>Claude Adapter</b><span>Claude Agent SDK async stream → UnifiedEvent。</span></div>
+   <div class="node blue"><b>Codex Adapter</b><span>App Server thread/turn/item/approval → UnifiedEvent。</span></div>
+   <div class="node green"><b>Test Adapter</b><span>Build/Test/Lint/Process structured result。</span></div>
+   <div class="node cyan"><b>Future Adapter</b><span>Gemini / OpenCode / others，不能改上層。</span></div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="row r4">
+   <div class="node orange"><b>Claude Runtime</b><span>session / tool / subagent / permissions。</span></div>
+   <div class="node blue"><b>Codex App Server</b><span>thread / turn / item / approval / queue / goal。</span></div>
+   <div class="node green"><b>MCP / Tools</b><span>Git、Search、Build、Issue、DB；不是 Agent-to-Agent bus。</span></div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="row r4">
+   <div class="node cyan"><b>SQLite State Store</b><span>tasks / runs / sessions / approvals / checkpoints。</span></div>
+   <div class="node green"><b>Append-only Event Log</b><span>debug、replay、analytics、timeline。</span></div>
+   <div class="node orange"><b>Usage Metrics</b><span>token/time/turn/review/stall/error。</span></div>
+  </div>
+ </div>
+</section>
+
+<section id="orchestrator" class="section two">
+ <div class="card">
+  <h2>Orchestrator：採用「明確下一步」而不是自由聊天</h2>
+  <p>OpenAI Agents SDK 把每一個模型 step 的結果限制在 RunAgain / Handoff / Final / Interruption；我們把它擴為：</p>
+  <pre>type NextAction =
+  | { type: "CONTINUE"; agentId: string }
+  | { type: "HANDOFF"; to: string; contextRef: string }
+  | { type: "RUN_TOOL"; toolId: string }
+  | { type: "WAIT_INPUT"; requestId: string }
+  | { type: "WAIT_APPROVAL"; approvalId: string }
+  | { type: "FINAL"; resultRef: string }
+  | { type: "FAIL"; error: NormalizedError };</pre>
+ </div>
+ <div class="card">
+  <h2>排程拆分</h2>
+  <p><b>Router</b>：選 Agent<br><b>Workflow Engine</b>：決定 NextAction<br><b>Context Manager</b>：只傳必要上下文<br><b>Review Manager</b>：控制 review round<br><b>Retry Manager</b>：依 error class 決定 retry/handoff<br><b>Budget Manager</b>：token/time/turn/stall<br><b>Human Gate</b>：不可自動決策的點</p>
+ </div>
+</section>
+
+<section id="event" class="section">
+ <h2>Unified Event Contract</h2>
+ <div class="callout">Hermes 的 telemetry 很實用，但我們不能依賴 Agent「自覺上報」。Adapter 能從 runtime 原生事件取得的，一律由 Adapter 自動產生；只有 runtime 不提供的語義才讓 Agent 補充。</div>
+ <pre>interface UnifiedEvent {
+  id: string;
+  projectId: string;
+  taskId: string;
+  runId: string;
+  agentId?: string;
+  sessionId?: string;
+
+  type:
+    | "run.started" | "run.completed" | "run.failed"
+    | "agent.started" | "agent.status"
+    | "model.turn.started" | "model.turn.completed"
+    | "tool.started" | "tool.completed" | "tool.failed"
+    | "handoff.requested" | "handoff.completed"
+    | "approval.required" | "approval.resolved"
+    | "safety.blocked" | "budget.exceeded"
+    | "runtime.warning" | "runtime.error";
+
+  severity: "info" | "warning" | "error" | "critical";
+  confidence: "confirmed" | "inferred";
+  timestamp: number;
+  data: Record&lt;string, unknown&gt;;
+}</pre>
+</section>
+
+<section id="resume" class="section two">
+ <div class="card">
+  <h2>Checkpoint / Resume：借 LangGraph + RunState</h2>
+  <p>LangGraph 把 <b>thread_id</b> 當 durable cursor；OpenAI Agents SDK 把 <b>RunState JSON</b> 當 pause/resume compatibility boundary。我們兩個概念都要。</p>
+  <pre>RunSnapshot {
+  schemaVersion,
+  runId,
+  taskId,
+  currentStep,
+  currentAgent,
+  agentSessions,
+  pendingApprovals,
+  pendingInputs,
+  budget,
+  workflowState,
+  lastEventId
+}</pre>
+ </div>
+ <div class="card">
+  <h2>非常重要的 resume 規則</h2>
+  <p>Resume 不是重新 prompt 一次。已經完成的 tool side effect 不可以再執行；approval 要恢復到原 tool/call identity；schema 要版本化；不認識的新 schema 應 fail closed，而不是猜著恢復。</p>
+ </div>
+</section>
+
+<section id="safety" class="section">
+ <h2>Safety / Approval Pipeline</h2>
+ <div class="flow">
+  <span class="chip">Input Guard</span><span class="fa">→</span>
+  <span class="chip">Agent Turn</span><span class="fa">→</span>
+  <span class="chip">Tool Input Guard</span><span class="fa">→</span>
+  <span class="chip">Approval?</span><span class="fa">→</span>
+  <span class="chip">Side Effect</span><span class="fa">→</span>
+  <span class="chip">Tool Output Guard</span><span class="fa">→</span>
+  <span class="chip">Final Output Guard</span>
+ </div>
+ <div class="callout"><b>採用 OpenAI Agents SDK 的 ordering 思想：</b>guardrail 是 run state 的一部分；resume 後不能亂重跑 initial guardrail；tool input guard 在副作用之前，tool output guard 在結果被下一輪模型接受之前。</div>
+ <table>
+  <tr><th>訊號</th><th>處理</th><th>是否自動重試</th></tr>
+  <tr><td>原生 approval_required</td><td>WAIT_APPROVAL</td><td class="no">否</td></tr>
+  <tr><td>原生 policy/safety block</td><td>BLOCKED + Human Gate</td><td class="no">否</td></tr>
+  <tr><td>timeout / temporary transport</td><td>Retry Manager</td><td class="yes">有限次</td></tr>
+  <tr><td>quota / usage limited</td><td>BUDGET/USAGE_LIMITED</td><td class="no">否</td></tr>
+  <tr><td>純文字疑似拒絕</td><td>Inferred incident</td><td class="partial">人工/策略判斷</td></tr>
+ </table>
+</section>
+
+<section id="rules" class="section">
+ <h2>Architecture v1：8 條不可違反規則</h2>
+ <table>
+  <tr><th>#</th><th>規則</th><th>來源/原因</th></tr>
+  <tr><td>1</td><td>Agent 不直接控制另一個 Agent。</td><td>避免 Hermes-style direct signal 變成不可控 peer mesh。</td></tr>
+  <tr><td>2</td><td>所有 handoff 必須由 Orchestrator 記錄並批准。</td><td>可觀測、可限流、可恢復。</td></tr>
+  <tr><td>3</td><td>UI 只能依賴 Unified API，不依賴 Claude/Codex event shape。</td><td>BAT 的 compatibility contract。</td></tr>
+  <tr><td>4</td><td>一個 session 只有一個 runtime owner。</td><td>BAT 的 runtime ownership 原則。</td></tr>
+  <tr><td>5</td><td>每個可中斷 run 都必須可 durable snapshot。</td><td>LangGraph / Agents SDK / MAF。</td></tr>
+  <tr><td>6</td><td>Auto Review 預設關閉，maxReviewRounds 預設 1。</td><td>避免 Claude↔Codex usage loop。</td></tr>
+  <tr><td>7</td><td>所有任務必須有 maxTurns / maxStall / time / token budget。</td><td>Agents SDK + Codex Goal + MAF。</td></tr>
+  <tr><td>8</td><td>Event Log append-only；Current State 是事件投影。</td><td>方便 debug、replay、事故分析。</td></tr>
+ </table>
+</section>
+
+<section id="roadmap" class="section">
+ <h2>建議實作順序</h2>
+ <div class="flow">
+  <span class="chip">1. Shared Types</span><span class="fa">→</span>
+  <span class="chip">2. Event Bus</span><span class="fa">→</span>
+  <span class="chip">3. Run State Machine</span><span class="fa">→</span>
+  <span class="chip">4. SQLite Snapshot/EventLog</span><span class="fa">→</span>
+  <span class="chip">5. Codex Adapter</span><span class="fa">→</span>
+  <span class="chip">6. Claude Adapter</span><span class="fa">→</span>
+  <span class="chip">7. Orchestrator Rules</span><span class="fa">→</span>
+  <span class="chip">8. Safety/Human Gate</span><span class="fa">→</span>
+  <span class="chip">9. WebSocket UI</span>
+ </div>
+ <div class="callout">MVP 成功標準不是「會聊天」，而是：啟動 Claude/Codex 任務 → UI 即時看到狀態 → 遇到 approval/block 可暫停 → 程式重啟後能從 snapshot 恢復 → 不重做已完成 side effect。</div>
+</section>
+
+<section class="section card source-list">
+ <h2>本輪直接研究來源</h2>
+ <a href="https://github.com/tony1223/better-agent-terminal" target="_blank">Better Agent Terminal</a>
+ <a href="https://github.com/tony1223/better-agent-terminal/blob/main/AGENTS.md" target="_blank">BAT AGENTS.md — IPC compatibility / runtime ownership</a>
+ <a href="https://github.com/pantheonforge/hermes" target="_blank">Hermes</a>
+ <a href="https://github.com/langchain-ai/langgraph" target="_blank">LangGraph</a>
+ <a href="https://github.com/openai/openai-agents-python" target="_blank">OpenAI Agents SDK</a>
+ <a href="https://github.com/openai/codex" target="_blank">OpenAI Codex / App Server protocol</a>
+ <a href="https://github.com/anthropics/claude-agent-sdk-demos" target="_blank">Claude Agent SDK demos</a>
+ <a href="https://github.com/microsoft/agent-framework" target="_blank">Microsoft Agent Framework</a>
+</section>
+</main>
+</div>
+
+<div class="detail" id="detail"><button class="x" onclick="closeD()">✕</button><div id="dcontent"></div></div>
+<script>
+function go(id){document.getElementById(id).scrollIntoView({behavior:'smooth'});document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));event.target.classList.add('active')}
+const info={
+ bat:`<h2>Better Agent Terminal</h2><p><b>最重要：</b>它的 AGENTS.md 明確把 renderer-facing IPC 當 compatibility contract；新 runtime 必須適配既有 event shape。並要求每個 running session runtime ownership 明確，fallback 放在 renderer 以下。</p><p><b>我們採用：</b>Unified UI contract、Adapter boundary、SessionRuntimeOwner。</p>`,
+ hermes:`<h2>Hermes</h2><p>它把 agent tree、activity、tool telemetry、shared KV、pub/sub、direct signal 都做成 MCP 工具。</p><p><b>我們採用：</b>AgentNode telemetry、structured activity、task-scoped shared context。</p><p><b>我們不採用：</b>Agent 任意 direct signal Agent；handoff 必須經 Orchestrator。</p>`,
+ langgraph:`<h2>LangGraph</h2><p>核心價值是 durable checkpoint + thread_id cursor + interrupt/resume。interrupt 會儲存狀態，resume 使用同一 thread id；其 runtime 特別區分 fresh input 和 resuming。</p><p><b>我們採用：</b>RunSnapshot、runId cursor、interrupt/restart semantics。</p>`,
+ agents:`<h2>OpenAI Agents SDK</h2><p>Runner lifecycle 很值得抄思想：每次 model turn 後只允許明確 NextStep；Interruption 必須儲存足夠 processed state，resume 不重做完成工作。Guardrail ordering 也被明確定義。</p><p><b>我們採用：</b>NextAction union、RunSnapshot schema version、Trace hierarchy。</p>`,
+ codex:`<h2>Codex App Server</h2><p>原生提供 thread/turn/item、approval policy/reviewer、queue、resume；目前 protocol 還有 ThreadGoalStatus：Active / Paused / Blocked / UsageLimited / BudgetLimited / Complete。</p><p><b>我們採用：</b>CodexAdapter 直接從 protocol event normalize，不解析 terminal 文字。</p>`,
+ maf:`<h2>Microsoft Agent Framework</h2><p>WorkflowEvent 把 started/status/failed/output/intermediate/request_info/warning/error 分得很清楚；checkpoint sample 證明 pending human request 可持久化後跨 process restore。Magentic sample 還有 max_round_count / max_stall_count。</p><p><b>我們採用：</b>maxStall、request/response correlation id、pending request durable snapshot。</p>`,
+ ui:`<h2>UI Contract</h2><p>UI 不應知道 Claude SDK 或 Codex App Server 的事件名。UI 只收到 UnifiedEvent 與 TaskProjection。</p>`,
+ orch:`<h2>Orchestrator</h2><p>唯一能發生跨 Agent 決策的地方。Agent 本身可以建議 handoff，但不能自己建立下一個 Agent run。</p>`
+};
+function show(k){document.getElementById('dcontent').innerHTML=info[k]||'';document.getElementById('detail').classList.add('open')}
+function closeD(){document.getElementById('detail').classList.remove('open')}
+</script>
+</body></html>

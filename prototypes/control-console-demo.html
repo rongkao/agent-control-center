@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Code + Codex 多 Agent 控制台 Demo</title>
+<style>
+  :root{
+    --bg:#f5f8fc; --panel:#fff; --line:#dfe7f2; --text:#172033; --muted:#6f7f95;
+    --blue:#2f6fed; --blue2:#eaf1ff; --green:#18a56a; --orange:#f5a623;
+    --red:#e04f5f; --purple:#7b61ff; --shadow:0 8px 28px rgba(37,62,110,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--text)}
+  button{font:inherit}
+  .app{display:grid;grid-template-columns:220px 1fr 360px;min-height:100vh}
+  .sidebar{background:#fff;border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;margin:0 6px 20px}
+  .brandmark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2f6fed,#7b61ff);display:grid;place-items:center;color:#fff}
+  .nav button{width:100%;display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:10px 12px;border-radius:10px;color:#42536b;cursor:pointer;text-align:left;margin-bottom:5px}
+  .nav button.active,.nav button:hover{background:var(--blue2);color:var(--blue)}
+  .section-title{font-size:12px;color:#8a98aa;text-transform:uppercase;letter-spacing:.08em;margin:18px 10px 8px}
+  .agent-mini{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;margin-bottom:6px;cursor:pointer;border:1px solid transparent}
+  .agent-mini:hover,.agent-mini.active{border-color:#cfe0ff;background:#f7faff}
+  .avatar{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:800}
+  .claude{background:#f07c42}.codex{background:#111}.test{background:#19a86b}.reviewer{background:#59657a}
+  .dot{width:9px;height:9px;border-radius:99px;margin-left:auto}.ok{background:var(--green)}.warn{background:var(--orange)}.bad{background:var(--red)}
+  .usage{position:absolute;left:14px;right:14px;bottom:16px;background:#f8fbff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .bar{height:8px;background:#e9eef5;border-radius:99px;overflow:hidden}.bar>span{display:block;height:100%;background:linear-gradient(90deg,#2f6fed,#7b61ff)}
+  .main{padding:18px;min-width:0}
+  .top{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+  .select,.search{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .search{flex:1}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .task{padding:18px;margin-bottom:14px}
+  .task-head{display:flex;justify-content:space-between;gap:20px}
+  .task h1{font-size:24px;margin:3px 0 8px}.meta{color:var(--muted);font-size:13px}
+  .steps{display:flex;align-items:center;gap:8px;margin:18px 0}
+  .step{display:flex;align-items:center;gap:6px;font-size:12px;color:#728199}
+  .step i{width:24px;height:24px;border-radius:50%;background:#e9eef6;display:grid;place-items:center;font-style:normal}
+  .step.done i{background:#dff6eb;color:var(--green)}.step.active i{background:var(--blue);color:#fff}
+  .line{height:2px;background:#e4eaf2;flex:1;min-width:18px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .actions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+  .actions .primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .actions .dark{background:#111;color:#fff;border-color:#111}
+  .actions .green{background:#0fa56f;color:#fff;border-color:#0fa56f}
+  .agents-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .agent-card{padding:14px;cursor:pointer}.agent-card.selected{outline:2px solid #bfd4ff}
+  .agent-title{display:flex;align-items:center;gap:10px;font-weight:800}.status{font-size:11px;padding:3px 8px;border-radius:99px;margin-left:auto;background:#eef3fa;color:#52657e}
+  .status.run{background:#e9f8f1;color:#12865a}.status.review{background:#fff4d8;color:#a76b00}.status.block{background:#ffe8eb;color:#bd3446}
+  .agent-card p{margin:10px 0 8px;color:#66768c;font-size:13px;line-height:1.5}
+  .small{font-size:12px;color:#77879b}
+  .workspace{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+  .conversation{padding:0;overflow:hidden}.tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{padding:13px 16px;border:0;background:#fff;cursor:pointer;color:#6b7a8e;font-weight:700}.tab.active{color:var(--blue);border-bottom:2px solid var(--blue)}
+  .chat{height:370px;overflow:auto;padding:16px}.msg{display:flex;gap:10px;margin-bottom:16px}.bubble{background:#f7f9fc;border:1px solid #edf1f6;border-radius:12px;padding:10px 12px;line-height:1.55;font-size:14px;flex:1}
+  .inputrow{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}.inputrow input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px}.inputrow button{border:0;background:var(--blue);color:#fff;border-radius:10px;padding:0 16px;cursor:pointer}
+  .events{padding:14px}.event{display:grid;grid-template-columns:54px 80px 1fr;gap:8px;padding:10px 0;border-bottom:1px dashed #e5eaf1;font-size:13px}.event:last-child{border-bottom:0}
+  .right{padding:18px 16px;border-left:1px solid var(--line);background:#fbfcfe}
+  .right h3{margin:0 0 12px}.alerts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .alert{border-radius:12px;padding:11px;font-size:13px;font-weight:700}.alert.red{background:#ffe9ec;color:#b63346}.alert.orange{background:#fff2df;color:#a96100}.alert.yellow{background:#fff9d9;color:#8a7200}
+  .group{margin-top:16px}.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #edf1f6;font-size:13px}
+  .incident{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .incident-head{display:flex;justify-content:space-between;align-items:center}.pill{font-size:11px;padding:3px 8px;border-radius:99px;background:#ffe8eb;color:#c12e44}
+  .incident p{font-size:13px;color:#617189;line-height:1.55}
+  .incident .buttons{display:flex;gap:8px}.incident button{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px;cursor:pointer}.incident button.primary{background:var(--blue);color:#fff}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#172033;color:#fff;padding:11px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}
+  .toast.show{opacity:1}
+  .hidden{display:none!important}
+  @media(max-width:1200px){.app{grid-template-columns:190px 1fr}.right{display:none}.agents-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">✦</div><div>Agent Control</div></div>
+    <div class="nav">
+      <button class="active">⌂ 工作台</button>
+      <button>◎ Agents</button>
+      <button>☷ 任務</button>
+      <button>▣ 專案</button>
+      <button>⑂ Worktrees</button>
+      <button>⚗ 測試</button>
+      <button>⚙ 設定</button>
+    </div>
+
+    <div class="section-title">Agents</div>
+    <div class="agent-mini active" data-agent="Claude"><div class="avatar claude">C</div><div><b>Claude</b><div class="small">主執行 / Coding</div></div><span class="dot ok"></span></div>
+    <div class="agent-mini" data-agent="Codex"><div class="avatar codex">◎</div><div><b>Codex</b><div class="small">Review / Analysis</div></div><span class="dot warn"></span></div>
+    <div class="agent-mini" data-agent="Test Agent"><div class="avatar test">T</div><div><b>Test Agent</b><div class="small">Build / Test</div></div><span class="dot ok"></span></div>
+    <div class="agent-mini" data-agent="Reviewer"><div class="avatar reviewer">R</div><div><b>Reviewer</b><div class="small">Approval / Safety</div></div><span class="dot bad"></span></div>
+
+    <div class="usage">
+      <b>Token 使用量</b>
+      <div class="small" style="margin:6px 0">本月 8.4M / 20M</div>
+      <div class="bar"><span style="width:42%"></span></div>
+      <div class="small" style="margin-top:8px">Claude 37% · Codex 31%</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div class="select">專案：demo-app ▾</div>
+      <div class="select">分支：feature/ui ▾</div>
+      <div class="select">worktree：wt-agent-1 ▾</div>
+      <input class="search" placeholder="搜尋任務、Agent、事件…" />
+    </div>
+
+    <section class="card task">
+      <div class="task-head">
+        <div>
+          <div class="meta">任務 #123 · frontend / ui / enhancement</div>
+          <h1>最佳化使用者介面並補充測試覆蓋</h1>
+          <div class="meta">目標：提升核心元件、最佳化卡片佈局、補充測試，並確保整體品質與安全性。</div>
+        </div>
+        <div class="meta"><b style="color:#172033">Claude</b><br>主執行 · 進行中</div>
+      </div>
+
+      <div class="steps">
+        <div class="step done"><i>✓</i>分析需求</div><div class="line"></div>
+        <div class="step done"><i>✓</i>生成方案</div><div class="line"></div>
+        <div class="step active"><i>3</i>執行任務</div><div class="line"></div>
+        <div class="step"><i>4</i>執行測試</div><div class="line"></div>
+        <div class="step"><i>5</i>Review</div><div class="line"></div>
+        <div class="step"><i>6</i>準備提交</div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" data-action="Claude">Ask Claude</button>
+        <button class="dark" data-action="Codex">Ask Codex</button>
+        <button class="green" data-action="Both">Ask Both</button>
+        <button data-action="Review">Review</button>
+        <button data-action="Rescue">Rescue</button>
+        <button data-action="Tests">Run Tests</button>
+      </div>
+    </section>
+
+    <section class="agents-grid">
+      <div class="card agent-card selected" data-agent="Claude">
+        <div class="agent-title"><div class="avatar claude">C</div>Claude<span class="status run">coding</span></div>
+        <p>當前任務：實現主頁元件<br>當前步驟：處理元件邏輯與樣式</p>
+        <div class="bar"><span style="width:70%"></span></div><div class="small" style="margin-top:8px">進度 70% · 12m</div>
+      </div>
+      <div class="card agent-card" data-agent="Codex">
+        <div class="agent-title"><div class="avatar codex">◎</div>Codex<span class="status review">reviewing</span></div>
+        <p>當前任務：程式碼審查<br>當前步驟：檢查 UI 元件實現</p>
+        <div class="bar"><span style="width:60%"></span></div><div class="small" style="margin-top:8px">進度 60% · 8m</div>
+      </div>
+      <div class="card agent-card" data-agent="Test Agent">
+        <div class="agent-title"><div class="avatar test">T</div>Test Agent<span class="status run">testing</span></div>
+        <p>當前任務：執行前端測試<br>當前步驟：執行單元測試</p>
+        <div class="bar"><span style="width:45%"></span></div><div class="small" style="margin-top:8px">進度 45% · 5m</div>
+      </div>
+      <div class="card agent-card" data-agent="Reviewer">
+        <div class="agent-title"><div class="avatar reviewer">R</div>Reviewer<span class="status block">blocked</span></div>
+        <p>當前任務：安全策略檢查<br><span style="color:#d63f52">阻塞原因：觸發 Safety 規則</span></p>
+        <div class="bar"><span style="width:4%;background:#e04f5f"></span></div><div class="small" style="margin-top:8px">等待人工處理 · 18m</div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="card conversation">
+        <div class="tabs">
+          <button class="tab active" data-tab="chat">Conversation</button>
+          <button class="tab" data-tab="events">Events</button>
+          <button class="tab" data-tab="logs">Logs</button>
+        </div>
+        <div class="chat" id="chatPanel">
+          <div class="msg"><div class="avatar claude">C</div><div class="bubble"><b>Claude</b><br>已開始處理主要任務，目前正在整理 UI 元件與錯誤狀態。</div></div>
+          <div class="msg"><div class="avatar codex">◎</div><div class="bubble"><b>Codex</b><br>正在進行 Review，目前發現 2 個可最佳化點，整體方向合理。</div></div>
+          <div class="msg"><div class="avatar test">T</div><div class="bubble"><b>Test Agent</b><br>目前 18 / 24 個測試通過，1 個測試失敗，其餘等待執行。</div></div>
+          <div class="msg"><div class="avatar reviewer">R</div><div class="bubble"><b>Reviewer</b><br><span style="color:#d63f52">觸發安全策略檢查，需要人工確認後才能繼續。</span></div></div>
+        </div>
+        <div class="events hidden" id="eventsPanel">
+          <div class="event"><span>10:32</span><b>Claude</b><span>read_file · 讀取元件</span></div>
+          <div class="event"><span>10:34</span><b>Codex</b><span>review_code · 審查當前實現</span></div>
+          <div class="event"><span>10:36</span><b>Test</b><span>run_tests · 18/24 通過</span></div>
+          <div class="event"><span>10:37</span><b>Reviewer</b><span style="color:#d63f52">policy_check · flagged</span></div>
+        </div>
+        <div class="events hidden" id="logsPanel">
+          <div class="event"><span>INFO</span><b>Claude</b><span>Task started</span></div>
+          <div class="event"><span>INFO</span><b>Codex</b><span>Review running</span></div>
+          <div class="event"><span>WARN</span><b>Test</b><span>1 test failed</span></div>
+          <div class="event"><span>ERROR</span><b>Reviewer</b><span>Safety guard triggered</span></div>
+        </div>
+        <div class="inputrow">
+          <input id="messageInput" placeholder="輸入訊息，例如：讓 Codex 再檢查一次這個方案…" />
+          <button id="sendBtn">傳送</button>
+        </div>
+      </div>
+
+      <div class="card events">
+        <h3 style="margin-top:0">事件流</h3>
+        <div class="event"><span>10:37</span><b>Reviewer</b><span style="color:#d63f52">policy_check · flagged</span></div>
+        <div class="event"><span>10:36</span><b>Test</b><span>run_tests · 18/24</span></div>
+        <div class="event"><span>10:34</span><b>Codex</b><span>review_code</span></div>
+        <div class="event"><span>10:32</span><b>Claude</b><span>write_file</span></div>
+        <div class="event"><span>10:31</span><b>System</b><span>task_started</span></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="right">
+    <h3>Inspector / 異常中心</h3>
+    <div class="alerts">
+      <div class="alert red">1 Safety Blocked<br><span class="small">需要人工批准</span></div>
+      <div class="alert orange">1 需要人工處理<br><span class="small">Reviewer 阻塞</span></div>
+      <div class="alert yellow" style="grid-column:1/3">1 測試失敗 · 18 / 24 通過</div>
+    </div>
+
+    <div class="group">
+      <b>異常分類</b>
+      <div class="row"><span>Policy / Safety</span><b>1</b></div>
+      <div class="row"><span>Permission / Approval</span><b>1</b></div>
+      <div class="row"><span>Tool / Command</span><b>0</b></div>
+      <div class="row"><span>Runtime / Infra</span><b>0</b></div>
+      <div class="row"><span>Model / Usage</span><b>0</b></div>
+    </div>
+
+    <div class="incident">
+      <div class="incident-head"><b>觸發 Safety 規則</b><span class="pill">高危</span></div>
+      <p><b>來源：</b> Reviewer Agent<br>
+      <b>異常型別：</b> Policy / Safety<br>
+      <b>原因：</b> 偵測到可能需要人工確認的高風險操作。<br>
+      <b>建議：</b> 改為人工審核，再決定是否重試或交由其他 Agent 處理。</p>
+      <div class="buttons">
+        <button class="primary" id="approveBtn">人工批准</button>
+        <button id="retryBtn">重新檢查</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <b>測試概覽</b>
+      <div class="row"><span>通過</span><b style="color:#18a56a">18</b></div>
+      <div class="row"><span>失敗</span><b style="color:#e04f5f">1</b></div>
+      <div class="row"><span>跳過</span><b>3</b></div>
+      <div class="row"><span>待執行</span><b>2</b></div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const toast = (t)=>{const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1800)}
+
+document.querySelectorAll('.agent-card,.agent-mini').forEach(el=>{
+  el.addEventListener('click',()=>{
+    const name=el.dataset.agent;
+    document.querySelectorAll('.agent-card').forEach(x=>x.classList.toggle('selected',x.dataset.agent===name));
+    document.querySelectorAll('.agent-mini').forEach(x=>x.classList.toggle('active',x.dataset.agent===name));
+    toast('已切換到 '+name);
+  })
+})
+
+document.querySelectorAll('.actions button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const a=btn.dataset.action;
+    const map={
+      'Claude':'Claude 任務已加入佇列',
+      'Codex':'Codex 分析任務已加入佇列',
+      'Both':'已同時派發給 Claude 與 Codex',
+      'Review':'已啟動手動 Review',
+      'Rescue':'已啟動 Rescue 任務',
+      'Tests':'測試任務已啟動'
+    };
+    toast(map[a]||a);
+  })
+})
+
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    ['chatPanel','eventsPanel','logsPanel'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    document.getElementById(btn.dataset.tab==='chat'?'chatPanel':btn.dataset.tab==='events'?'eventsPanel':'logsPanel').classList.remove('hidden');
+  })
+})
+
+document.getElementById('sendBtn').addEventListener('click',()=>{
+  const input=document.getElementById('messageInput');
+  if(!input.value.trim()) return;
+  const div=document.createElement('div');
+  div.className='msg';
+  div.innerHTML='<div class="avatar" style="background:#2f6fed">你</div><div class="bubble"><b>You</b><br>'+input.value.replace(/[<>]/g,'')+'</div>';
+  document.getElementById('chatPanel').appendChild(div);
+  input.value='';
+  toast('訊息已傳送');
+})
+document.getElementById('messageInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('sendBtn').click()})
+document.getElementById('approveBtn').addEventListener('click',()=>toast('已標記為人工批准（Demo）'))
+document.getElementById('retryBtn').addEventListener('click',()=>toast('已重新提交安全檢查（Demo）'))
+</script>
+</body>
+</html>

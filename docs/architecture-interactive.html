@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Code + Codex Agent Control Center 架構圖</title>
+<style>
+:root{
+  --bg:#f4f7fb; --panel:#fff; --line:#dce5f1; --text:#182235; --muted:#6e7f95;
+  --blue:#2f6fed; --cyan:#27a8e0; --purple:#7357e8; --green:#17a673; --orange:#f0a11e; --red:#d94b5b;
+  --shadow:0 10px 30px rgba(36,61,105,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--text)}
+header{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:19px}
+.logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;display:grid;place-items:center}
+.controls{display:flex;gap:8px}
+.controls button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 11px;cursor:pointer}
+.controls button:hover{background:#f6f9fd}
+.layout{display:grid;grid-template-columns:270px 1fr 340px;min-height:calc(100vh - 68px)}
+aside.left{background:#fff;border-right:1px solid var(--line);padding:16px}
+aside.right{background:#fbfcfe;border-left:1px solid var(--line);padding:16px}
+main{padding:18px;overflow:auto}
+.small{font-size:12px;color:var(--muted)}
+h3{margin:0 0 12px}
+.legend{display:grid;gap:8px}
+.legend .item{padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.legend .item:hover{border-color:#b7cdf6;background:#f7faff}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.blue{background:var(--blue)}.purple{background:var(--purple)}.green{background:var(--green)}.orange{background:var(--orange)}.red{background:var(--red)}.cyan{background:var(--cyan)}
+.diagram-wrap{min-width:1150px}
+.layer{margin-bottom:20px}
+.layer-title{font-size:13px;color:#78879c;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px 4px}
+.row{display:grid;gap:14px;align-items:stretch}
+.row.ui{grid-template-columns:1.3fr .9fr .9fr .9fr}
+.row.api{grid-template-columns:1fr 1fr 1fr}
+.row.core{grid-template-columns:1.25fr 1fr 1fr}
+.row.adapters{grid-template-columns:1fr 1fr 1fr 1fr}
+.row.runtime{grid-template-columns:1fr 1fr 1fr}
+.node{position:relative;background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;box-shadow:var(--shadow);cursor:pointer;transition:.18s}
+.node:hover,.node.active{transform:translateY(-2px);border-color:#a9c4f8;box-shadow:0 14px 30px rgba(47,111,237,.12)}
+.node h4{margin:0 0 7px;font-size:15px}
+.node p{margin:0;color:#66778d;font-size:12.5px;line-height:1.55}
+.node .tag{display:inline-block;margin-top:10px;padding:3px 8px;border-radius:99px;background:#eef3fa;font-size:11px;color:#596b82}
+.node.accent-blue{border-top:4px solid var(--blue)}
+.node.accent-purple{border-top:4px solid var(--purple)}
+.node.accent-green{border-top:4px solid var(--green)}
+.node.accent-orange{border-top:4px solid var(--orange)}
+.node.accent-red{border-top:4px solid var(--red)}
+.node.accent-cyan{border-top:4px solid var(--cyan)}
+.connect{height:30px;position:relative}
+.connect:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:#c8d5e7}
+.connect:after{content:"▼";position:absolute;left:calc(50% - 7px);bottom:-5px;color:#98a8bd;font-size:13px}
+.bus{background:linear-gradient(90deg,#edf3ff,#f6efff);border:1px dashed #afc2e6;border-radius:12px;padding:10px 14px;text-align:center;font-weight:800;color:#495d78;margin-bottom:18px}
+.section-note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:12px}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:7px 10px;border-radius:9px;background:#eef3fa;font-size:12px}
+.arrow{color:#9aabc0}
+.detail{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:250px}
+.detail h2{font-size:18px;margin:0 0 8px}
+.detail ul{padding-left:18px;margin:10px 0;color:#596b82;line-height:1.65;font-size:13px}
+.code{background:#111827;color:#d9e2f2;border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:auto;white-space:pre}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kpi div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px}
+.timeline{margin-top:14px}
+.step{display:flex;gap:9px;padding:8px 0;border-bottom:1px dashed #e4eaf2;font-size:12px}
+.badge{padding:2px 7px;border-radius:99px;background:#eff4fa;color:#5f7086;font-size:11px}
+@media(max-width:1200px){
+ .layout{grid-template-columns:220px 1fr}
+ aside.right{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">✦</div>Agent Control Center · 詳細架構圖</div>
+  <div class="controls">
+    <button onclick="setView('default')">完整架構</button>
+    <button onclick="setView('runtime')">只看 Runtime</button>
+    <button onclick="setView('safety')">只看 Safety</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="left">
+    <h3>模組索引</h3>
+    <div class="small" style="margin-bottom:10px">點選左側或中間模組檢視詳細職責。</div>
+    <div class="legend">
+      <div class="item" data-target="ui"><span class="dot blue"></span>UI / Dashboard</div>
+      <div class="item" data-target="api"><span class="dot cyan"></span>API Gateway</div>
+      <div class="item" data-target="orchestrator"><span class="dot purple"></span>Orchestrator</div>
+      <div class="item" data-target="task"><span class="dot purple"></span>Task Manager</div>
+      <div class="item" data-target="eventbus"><span class="dot green"></span>Event Bus</div>
+      <div class="item" data-target="safety"><span class="dot red"></span>Safety / Approval</div>
+      <div class="item" data-target="claude"><span class="dot orange"></span>Claude Adapter</div>
+      <div class="item" data-target="codex"><span class="dot blue"></span>Codex Adapter</div>
+      <div class="item" data-target="test"><span class="dot green"></span>Test / Build Adapter</div>
+      <div class="item" data-target="store"><span class="dot cyan"></span>SQLite / State Store</div>
+      <div class="item" data-target="mcp"><span class="dot green"></span>MCP Tool Layer</div>
+    </div>
+    <div class="section-note" style="margin-top:16px">
+      <b>核心原則</b>
+      <div class="small" style="margin-top:6px">UI 不直接調 Claude / Codex。所有請求經 Orchestrator，所有狀態經 Event Bus。</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="diagram-wrap">
+      <div class="layer" data-group="ui">
+        <div class="layer-title">01 · User Experience Layer</div>
+        <div class="row ui">
+          <div class="node accent-blue" id="ui" data-id="ui">
+            <h4>React Control Console</h4>
+            <p>任務輸入、Agent 狀態、對話、事件流、異常、資源用量、人工批准。</p>
+            <span class="tag">React + TypeScript</span>
+          </div>
+          <div class="node accent-blue" data-id="ui">
+            <h4>Agent Status Panel</h4>
+            <p>idle / coding / reviewing / blocked / failed / completed。</p>
+            <span class="tag">Realtime</span>
+          </div>
+          <div class="node accent-blue" data-id="ui">
+            <h4>Incident Center</h4>
+            <p>Safety、Approval、Runtime、Quota、Tool Error 的統一異常中心。</p>
+            <span class="tag">Confirmed / Inferred</span>
+          </div>
+          <div class="node accent-blue" data-id="ui">
+            <h4>Human Control</h4>
+            <p>批准、拒絕、停止、重試、改派 Agent、手動 Review。</p>
+            <span class="tag">Human-in-the-loop</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connect"></div>
+
+      <div class="layer" data-group="api">
+        <div class="layer-title">02 · Transport / API Layer</div>
+        <div class="row api">
+          <div class="node accent-cyan" id="api" data-id="api">
+            <h4>REST API</h4>
+            <p>建立任務、傳送訊息、取消任務、人工批准、查詢狀態。</p>
+            <span class="tag">Fastify</span>
+          </div>
+          <div class="node accent-cyan" data-id="api">
+            <h4>WebSocket</h4>
+            <p>即時推送 Agent status、event、usage、approval、error。</p>
+            <span class="tag">/ws/events</span>
+          </div>
+          <div class="node accent-cyan" data-id="api">
+            <h4>Session Gateway</h4>
+            <p>把 UI session / task / agent session 做對映與權限檢查。</p>
+            <span class="tag">Session Router</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connect"></div>
+
+      <div class="layer" data-group="core">
+        <div class="layer-title">03 · Core Orchestration Layer</div>
+        <div class="row core">
+          <div class="node accent-purple" id="orchestrator" data-id="orchestrator">
+            <h4>Agent Orchestrator</h4>
+            <p>決定任務交給誰、是否並行、是否 review、何時停止、何時要求人工介入。</p>
+            <span class="tag">中心控制器</span>
+          </div>
+          <div class="node accent-purple" id="task" data-id="task">
+            <h4>Task Manager</h4>
+            <p>管理 Task / AgentTask 狀態機、進度、依賴、重試與 timeout。</p>
+            <span class="tag">State Machine</span>
+          </div>
+          <div class="node accent-red" id="safety" data-id="safety">
+            <h4>Policy / Approval Guard</h4>
+            <p>安全分類、人工批准、權限控制、loop guard、最大 review 輪次。</p>
+            <span class="tag">Safety + Budget</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connect"></div>
+
+      <div class="bus" id="eventbus" data-id="eventbus">Event Bus · 所有 Agent / Tool / Runtime 事件統一進入這裡，再更新 State Store 與 UI</div>
+
+      <div class="layer" data-group="adapters">
+        <div class="layer-title">04 · Agent Adapter Layer</div>
+        <div class="row adapters">
+          <div class="node accent-orange" id="claude" data-id="claude">
+            <h4>Claude Adapter</h4>
+            <p>封裝 Claude Agent SDK；轉換 message、tool call、approval、error 成統一 AgentEvent。</p>
+            <span class="tag">@anthropic-ai/claude-agent-sdk</span>
+          </div>
+          <div class="node accent-blue" id="codex" data-id="codex">
+            <h4>Codex Adapter</h4>
+            <p>封裝 Codex App Server；處理 thread、turn、item、approval、tool event。</p>
+            <span class="tag">codex app-server</span>
+          </div>
+          <div class="node accent-green" id="test" data-id="test">
+            <h4>Build / Test Adapter</h4>
+            <p>統一 build、test、lint、benchmark 的命令與結果格式。</p>
+            <span class="tag">Process Runner</span>
+          </div>
+          <div class="node accent-cyan" data-id="orchestrator">
+            <h4>Reviewer Adapter</h4>
+            <p>可對映成 Codex review、Claude review 或專門 reviewer agent。</p>
+            <span class="tag">Pluggable</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connect"></div>
+
+      <div class="layer" data-group="runtime">
+        <div class="layer-title">05 · Runtime / Tool Layer</div>
+        <div class="row runtime">
+          <div class="node accent-orange" data-id="claude">
+            <h4>Claude Runtime</h4>
+            <p>Claude session、模型配置、工具呼叫、Agent loop、sub-agent。</p>
+            <span class="tag">Agent SDK Runtime</span>
+          </div>
+          <div class="node accent-blue" data-id="codex">
+            <h4>Codex Runtime</h4>
+            <p>Codex thread / turn、sandbox、approval、tool execution、resume。</p>
+            <span class="tag">App Server Runtime</span>
+          </div>
+          <div class="node accent-green" id="mcp" data-id="mcp">
+            <h4>MCP Tool Layer</h4>
+            <p>Git、檔案搜尋、Build/Test、Issue、資料庫、內部工具等共用工具入口。</p>
+            <span class="tag">Shared Tooling</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connect"></div>
+
+      <div class="layer" data-group="data">
+        <div class="layer-title">06 · Persistence / Observability Layer</div>
+        <div class="row api">
+          <div class="node accent-cyan" id="store" data-id="store">
+            <h4>SQLite / State Store</h4>
+            <p>projects、tasks、agent_sessions、events、approvals、usage。</p>
+            <span class="tag">Drizzle ORM</span>
+          </div>
+          <div class="node accent-green" data-id="eventbus">
+            <h4>Event Log</h4>
+            <p>儲存 task_started、tool_started、approval、blocked、completed 等時間線。</p>
+            <span class="tag">Replayable</span>
+          </div>
+          <div class="node accent-orange" data-id="store">
+            <h4>Usage / Metrics</h4>
+            <p>Token、任務耗時、Agent 次數、Review 次數、失敗率、loop 次數。</p>
+            <span class="tag">Observability</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-note">
+        <b>典型任務流</b>
+        <div class="flow">
+          <span class="chip">UI 建立 Task</span><span class="arrow">→</span>
+          <span class="chip">Orchestrator 分派 Claude</span><span class="arrow">→</span>
+          <span class="chip">Claude Adapter 產生事件</span><span class="arrow">→</span>
+          <span class="chip">Event Bus</span><span class="arrow">→</span>
+          <span class="chip">UI 即時顯示</span><span class="arrow">→</span>
+          <span class="chip">需要時手動 Ask Codex</span><span class="arrow">→</span>
+          <span class="chip">Review / Rescue / Approval</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="right">
+    <div class="detail" id="detail">
+      <h2>Agent Orchestrator</h2>
+      <div class="small">點選中間任意模組檢視細節</div>
+      <ul>
+        <li>接收 UI 的高層任務，不直接處理模型細節。</li>
+        <li>選擇 Claude、Codex、Both、Reviewer、Test。</li>
+        <li>限制自動互審輪次與最大 Agent turn。</li>
+        <li>控制 timeout、retry、cancel、approval。</li>
+        <li>避免 Claude ↔ Codex 無限迴圈。</li>
+      </ul>
+      <div class="code">assign(task)
+  → policy check
+  → choose agent
+  → start session
+  → subscribe events
+  → update state
+  → decide next action</div>
+    </div>
+
+    <div class="kpi">
+      <div><b>核心狀態</b><div class="small">Task / Agent / Approval / Usage</div></div>
+      <div><b>核心事件</b><div class="small">Started / Tool / Blocked / Failed / Completed</div></div>
+    </div>
+
+    <div class="timeline">
+      <h3 style="margin-top:18px">一個任務實際怎麼走</h3>
+      <div class="step"><span class="badge">01</span><span>UI 建立任務「修 bug」</span></div>
+      <div class="step"><span class="badge">02</span><span>Orchestrator 指派 Claude</span></div>
+      <div class="step"><span class="badge">03</span><span>Claude 事件進 Event Bus</span></div>
+      <div class="step"><span class="badge">04</span><span>UI 顯示 coding / tool call</span></div>
+      <div class="step"><span class="badge">05</span><span>手動 Ask Codex Review</span></div>
+      <div class="step"><span class="badge">06</span><span>若 blocked → Safety / Approval</span></div>
+      <div class="step"><span class="badge">07</span><span>人工批准或取消</span></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const details = {
+  ui:{
+    title:'React Control Console',
+    bullets:['只負責展示與操作，不直接啟動 Claude/Codex','透過 REST 發任務，WebSocket 收事件','顯示 Agent 狀態、異常、資源用量、人工批准'],
+    code:'UI -> POST /api/tasks\nUI <- WS /ws/events'
+  },
+  api:{
+    title:'API Gateway',
+    bullets:['REST 處理命令型操作','WebSocket 推送即時事件','Session Gateway 對齊 UI task 與 agent session'],
+    code:'POST /api/tasks\nPOST /api/tasks/:id/message\nPOST /api/approvals/:id/approve\nWS /ws/events'
+  },
+  orchestrator:{
+    title:'Agent Orchestrator',
+    bullets:['核心控制器','決定誰做、何時 review、何時停止','所有 Agent 不直接互叫，統一由 Orchestrator 排程','內建 loop guard / budget guard'],
+    code:'assign(task)\n -> policy check\n -> choose agent\n -> start/resume session\n -> observe events\n -> next action'
+  },
+  task:{
+    title:'Task Manager',
+    bullets:['維護 task 狀態機','維護每個 Agent 的 currentAction / progress / sessionId','處理依賴、timeout、retry、cancel'],
+    code:'pending -> running -> blocked -> completed\n                  \\-> failed'
+  },
+  eventbus:{
+    title:'Event Bus',
+    bullets:['所有 Runtime 都轉成統一 AgentEvent','同時送到 State Store、WebSocket、Metrics','支援重播與除錯'],
+    code:'Claude/Codex/Test\n      ↓\n normalize\n      ↓\n AgentEvent\n      ↓\n Store + UI'
+  },
+  safety:{
+    title:'Safety / Approval Guard',
+    bullets:['優先吃原生 structured error','再判斷 runtime/tool error','最後才用文字推斷','區分 Confirmed 與 Inferred','限制 review round 與 agent turn'],
+    code:'policy_block -> blocked\napproval_required -> waiting_approval\nquota_exceeded -> failed\npossible_refusal -> inferred'
+  },
+  claude:{
+    title:'Claude Adapter',
+    bullets:['封裝 Claude Agent SDK','把 Claude message / tool / approval / error 正規化','儲存 Claude session','不把 Claude 特有格式洩漏給 UI'],
+    code:'Claude SDK event\n -> normalizeClaudeEvent()\n -> AgentEvent'
+  },
+  codex:{
+    title:'Codex Adapter',
+    bullets:['封裝 codex app-server','管理 thread / turn / item','處理 approval 與 tool execution','支援 resume / cancel / review / rescue'],
+    code:'item/started -> tool_started\nitem/completed -> tool_completed\napproval -> approval_required'
+  },
+  test:{
+    title:'Build / Test Adapter',
+    bullets:['所有 build/test/lint 統一格式','記錄 exit code / stdout / stderr','測試失敗可轉成 AgentEvent'],
+    code:'run command\n -> capture output\n -> classify result\n -> emit event'
+  },
+  store:{
+    title:'SQLite / State Store',
+    bullets:['第一版 SQLite 足夠','儲存 projects / tasks / sessions / events / approvals / usage','UI 重新整理後仍能恢復狀態'],
+    code:'projects\ntasks\nagent_sessions\nevents\napprovals\nusage'
+  },
+  mcp:{
+    title:'MCP Tool Layer',
+    bullets:['共用工具層，不負責 Agent 互相通訊','Claude/Codex 都可調同一套 Git、Build、Search、DB 工具','把工具能力與模型解耦'],
+    code:'Agent -> MCP -> Git / Build / Search / DB / Internal Tools'
+  }
+};
+
+function selectNode(id){
+  document.querySelectorAll('.node').forEach(n=>n.classList.toggle('active',n.dataset.id===id));
+  const d=details[id] || details.orchestrator;
+  const box=document.getElementById('detail');
+  box.innerHTML='<h2>'+d.title+'</h2><div class="small">模組詳細職責</div><ul>'+d.bullets.map(x=>'<li>'+x+'</li>').join('')+'</ul><div class="code">'+d.code.replaceAll('<','&lt;')+'</div>';
+}
+document.querySelectorAll('[data-id]').forEach(el=>el.addEventListener('click',()=>selectNode(el.dataset.id)));
+document.querySelectorAll('.item').forEach(el=>el.addEventListener('click',()=>selectNode(el.dataset.target)));
+selectNode('orchestrator');
+
+function setView(mode){
+  const groups=document.querySelectorAll('[data-group]');
+  if(mode==='default'){groups.forEach(g=>g.style.display='block');return;}
+  if(mode==='runtime'){
+    groups.forEach(g=>g.style.display=['adapters','runtime','data'].includes(g.dataset.group)?'block':'none');
+  }
+  if(mode==='safety'){
+    groups.forEach(g=>g.style.display=['core','adapters','data'].includes(g.dataset.group)?'block':'none');
+    selectNode('safety');
+  }
+}
+</script>
+</body>
+</html>

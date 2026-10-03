@@ -1,0 +1,42 @@
+{
+  "name": "agent-control-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tests"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n SERVER,WEB \"npm run dev -w @acc/server\" \"npm run dev -w @acc/web\"",
+    "build": "tsc -b && npm run bundle -w @acc/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --pretty false",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "start": "npm run bundle -w @acc/web && npm run start -w @acc/server",
+    "start:real": "npm run bundle -w @acc/web && cross-env ACC_RUNTIME_MODE=real npm run start -w @acc/server",
+    "dev:real": "cross-env ACC_RUNTIME_MODE=real npm run dev",
+    "doctor": "node scripts/doctor.mjs",
+    "dump-run": "node --import tsx scripts/dump-run.ts",
+    "lint": "eslint packages apps/server",
+    "check:codex-protocol": "node scripts/check-codex-protocol.mjs",
+    "bench:events": "tsx scripts/bench-events.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "cross-env": "^10.1.0",
+    "tsx": "^4.20.0"
+  }
+}

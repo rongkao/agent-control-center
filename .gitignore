@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.vite/
+coverage/
+.env
+*.log
+.DS_Store
+agent-control.db
+# 迁移留下的旧库备份、单实例锁及其提示文件（agent-control.db.bak-*、agent-control.db.lock 等）
+agent-control.db.*
+
+*.tsbuildinfo
+dist-ts/
+*.db-wal
+*.db-shm
+.playwright-mcp/
+scripts/tmp/
+.acc-worktrees/
+logs/
+# scripts/clone-references.ps1 克隆的参考仓库（L-31）：不能以嵌入仓库的形式进入索引
+references/

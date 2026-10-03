@@ -1,0 +1,13 @@
+{
+  "name": "@acc/tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@acc/core": "*",
+    "@acc/adapters": "*",
+    "@acc/server": "*",
+    "@acc/storage": "*",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.280"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": { "composite": true, "outDir": "dist", "rootDir": ".", "types": ["node"] },
+  "references": [
+    { "path": "../packages/core" },
+    { "path": "../packages/adapters" },
+    { "path": "../packages/storage" },
+    { "path": "../apps/server" },
+    { "path": "../apps/web" }
+  ],
+  "include": ["**/*.ts"],
+  "exclude": ["dist"]
+}
