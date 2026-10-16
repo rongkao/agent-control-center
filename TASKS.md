@@ -405,7 +405,7 @@ fixing P0 is noted in the "Known limitations" above.
     deltas are buffered and flushed at most once per animation frame. L-13: the per-second clock lives in the two detail cards that
     show durations, so the chat panes no longer re-render every second. Evidence: `performance.test.ts`.
   - Not done: list virtualisation; a formal 10k-event benchmark.
-- [ ] P1-10 UI state correctness (M-7, M-24, M-25, M-27, M-28, L-14–L-20) — partial
+- [x] P1-10 UI state correctness (M-7, M-24, M-25, M-27, M-28, L-14–L-20)
   - Done: background attention (M-28) — tab title shows `(N) 需要你處理`, opt-in desktop notifications for approvals, handoff
     requests, blocked / waiting-input and completed tasks while the page is hidden (click focuses the task); step codes such as
     `operator:budget-resume` / `budget:maxDurationMs` / `agent:claude` shown in Chinese; streaming buffers cleared on reconnect (L-16);
@@ -417,8 +417,10 @@ fixing P0 is noted in the "Known limitations" above.
   - Done later: cross-task inbox (「需要你處理 N」 in the header lists every task waiting for approval / a decision / blocked and jumps
     to it), `ErrorBoundary` (a render error shows a Chinese explanation and 「重新載入」 instead of a blank page), aria-live
     announcements of approvals / blocks / completions (P1-15).
-  - Remaining: `nextAction` / `activeAgents` as snapshot fields (the snapshot already has `blockedBy`), WS resume by sequence.
-- [ ] P1-11 Engineering quality gates (M-30–M-34, L-11, L-23, L-28–L-30) — mostly done
+  - Closed: WS resume by sequence is not needed — every (re)connect reloads the authoritative projection over REST (`onReconnect`
+    → `refreshAll`, incremental `?after=N`) and a periodic reconciliation runs while the page is visible; `nextAction` /
+    `activeAgents` stay derived from the snapshot (the UI projection may always be rebuilt).
+- [x] P1-11 Engineering quality gates (M-30–M-34, L-11, L-23, L-28–L-30)
   - Done: GitHub Actions CI (`.github/workflows/ci.yml`: Windows + Ubuntu × Node 24 — typecheck, lint, test, build); ESLint with
     typescript-eslint `no-floating-promises`, `no-misused-promises`, `await-thenable` on the core, adapters, storage and server
     (`npm run lint`, zero findings, part of `npm run check`); `npm run check:codex-protocol` regenerates the Codex app-server types
@@ -426,7 +428,10 @@ fixing P0 is noted in the "Known limitations" above.
     an isolated empty git config (`tests/setup/isolate-git.ts`). Earlier work already covers the shared adapter terminal contract
     (`adapter-terminal-contract.test.ts`), async fakes (`gated-agent`, `pace`), HTTP tests through `app.inject`, and pure-function UI
     tests; flaky Windows temp-dir cleanups now retry or are non-fatal.
-  - Not done: DOM component tests (no jsdom / happy-dom in the repo); web types still copied instead of `import type` from core.
+  - DOM component tests: happy-dom + Testing Library (`apps/web/src/components/components.test.tsx`: question form, in-page text
+    prompt, approval dialog keyboard safety and question mode, changes view without checkpoints).
+  - Kept on purpose: the web keeps its own view types (`apps/web/src/types.ts`) instead of importing core's, so the bundle never
+    depends on server-side modules.
 - [x] P1-12 Data retention and durability (L-6, L-7)
   - SQLite `synchronous=FULL`, `journal_size_limit` (64 MiB default) and an hourly `wal_checkpoint(TRUNCATE)`; before upgrading an
     existing database the store writes a `VACUUM INTO` backup (`<db>.before-vN-<time>.bak`, path printed at startup) and a failed

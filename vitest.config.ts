@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // 元件測試（apps/web/**/*.test.tsx）用 React 17+ 的自動 JSX 轉換
+  esbuild: { jsx: 'automatic' },
   test: {
-    include: ['packages/**/*.test.ts', 'apps/**/*.test.ts', 'tests/**/*.test.ts'],
+    include: ['packages/**/*.test.ts', 'apps/**/*.test.ts', 'apps/**/*.test.tsx', 'tests/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     environment: 'node',
     // 整合測試會真實啟動服務、子程序和 SQLite：整套並行跑、機器繁忙（尤其是 Windows 上有安全軟體掃描）時 5 秒的預設時限太緊
