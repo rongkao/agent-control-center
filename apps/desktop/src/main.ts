@@ -5,9 +5,11 @@
  * - 視窗直接載入服務端給的帶令牌連結，沿用網頁版的登入機制；
  * - 資料目錄與命令列版共用（%LOCALAPPDATA%\agent-control-center），單實例鎖保證兩邊不會同時開同一份資料；
  * - 設定：資料目錄裡的 .env（與命令列版相同的設定項）；預設工作資料夾第一次啟動時選擇，之後可從選單更換；
- * - 關閉視窗：先讓服務端優雅關閉（停下 AI、關好資料庫），再結束。
+ * - 關閉視窗：預設縮到系統匣（AI 的工作不中斷）；從系統匣或選單「結束」時先讓服務端優雅關閉（停下 AI、關好資料庫），再結束；
+ * - 自動更新：從 GitHub Releases 檢查新版本，背景下載，下載完問要不要重新啟動更新（.env 設 ACC_AUTO_UPDATE=0 可關閉）。
  */
-import { app, BrowserWindow, dialog, Menu, shell, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
+import { app, BrowserWindow, dialog, Menu, nativeImage, shell, Tray, utilityProcess, type MenuItemConstructorOptions, type UtilityProcess } from 'electron';
+import electronUpdater from 'electron-updater';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -21,6 +23,10 @@ if (process.env.ACC_DESKTOP_USER_DATA) app.setPath('userData', process.env.ACC_D
 
 interface DesktopSettings {
   workspace?: string;
+  /** 關閉視窗時縮到系統匣（預設 true）。 */
+  closeToTray?: boolean;
+  /** 已經提示過「仍在背景執行」。 */
+  trayHintShown?: boolean;
   bounds?: { x?: number; y?: number; width: number; height: number };
   maximized?: boolean;
 }
@@ -38,6 +44,7 @@ let server: UtilityProcess | undefined;
 let ready: ServerReady | undefined;
 let quitting = false;
 let restarting = false;
+let tray: Tray | undefined;
 
 // ---------------------------------------------------------------- 路徑與設定
 
@@ -279,10 +286,107 @@ function createWindow(): void {
     if (win.isMaximized()) writeSettings({ maximized: true });
     else writeSettings({ maximized: false, bounds: win.getBounds() });
   };
-  win.on('close', saveBounds);
+  win.on('close', (event) => {
+    saveBounds();
+    // 縮到系統匣：AI 的工作不中斷；真正結束走系統匣或選單的「結束」
+    if (!quitting && !SMOKE && readSettings().closeToTray !== false && tray) {
+      event.preventDefault();
+      win?.hide();
+      if (!readSettings().trayHintShown) {
+        writeSettings({ trayHintShown: true });
+        tray.displayBalloon({ title: 'Agent Control Center 仍在背景執行', content: 'AI 的工作不會中斷，需要你處理時會通知你。點系統匣圖示重新開啟，右鍵選「結束」關閉。', iconType: 'info' });
+      }
+    }
+  });
   win.on('closed', () => {
     win = undefined;
   });
+}
+
+// ---------------------------------------------------------------- 系統匣
+
+function showWindow(): void {
+  if (!win) createWindow();
+  if (win?.isMinimized()) win.restore();
+  win?.show();
+  win?.focus();
+}
+
+function createTray(): void {
+  const icon = nativeImage.createFromPath(resource('resources', process.platform === 'win32' ? 'icon.ico' : 'icon.png'));
+  tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon);
+  tray.setToolTip('Agent Control Center');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: '開啟控制台', click: showWindow },
+      { type: 'separator' },
+      { label: '結束（停下 AI 並關閉）', click: () => app.quit() },
+    ]),
+  );
+  tray.on('click', showWindow);
+}
+
+// ---------------------------------------------------------------- 自動更新
+
+const { autoUpdater } = electronUpdater;
+let updateReady = false;
+
+/** 自動更新：打包後才啟用（或用 ACC_UPDATE_FEED 指向測試用的更新來源）；.env 設 ACC_AUTO_UPDATE=0 關閉。 */
+function setupAutoUpdate(): void {
+  const feed = process.env.ACC_UPDATE_FEED;
+  if ((!app.isPackaged && !feed) || (process.env.ACC_AUTO_UPDATE ?? readDotEnv().ACC_AUTO_UPDATE) === '0') return;
+  if (feed) autoUpdater.setFeedURL({ provider: 'generic', url: feed });
+  autoUpdater.autoDownload = true;
+  // 結束程式時自動安裝下載好的更新；冒煙測試只驗證下載，絕不安裝（否則會真的裝到這台電腦上）
+  autoUpdater.autoInstallOnAppQuit = !SMOKE;
+  autoUpdater.logger = { info: (m: unknown) => log(`[update] ${String(m)}`), warn: (m: unknown) => log(`[update] ${String(m)}`), error: (m: unknown) => log(`[update] ${String(m)}`), debug: () => undefined };
+  autoUpdater.on('update-downloaded', (info) => void onUpdateDownloaded(info.version));
+  autoUpdater.on('error', (error) => log(`[update] 失敗：${error.message}`));
+  // 啟動後稍等再檢查，之後每 6 小時檢查一次
+  setTimeout(() => void checkForUpdates(false), SMOKE ? 500 : 15_000).unref?.();
+  setInterval(() => void checkForUpdates(false), 6 * 60 * 60 * 1000).unref?.();
+}
+
+async function checkForUpdates(manual: boolean): Promise<void> {
+  if (!app.isPackaged && !process.env.ACC_UPDATE_FEED) {
+    if (manual) void dialog.showMessageBox({ type: 'info', title: '檢查更新', message: '開發版不檢查更新。' });
+    return;
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const latest = result?.updateInfo.version;
+    if (manual && (!latest || latest === app.getVersion())) {
+      await dialog.showMessageBox({ type: 'info', title: '檢查更新', message: `已經是最新版本（${app.getVersion()}）。` });
+    } else if (manual && !updateReady) {
+      await dialog.showMessageBox({ type: 'info', title: '檢查更新', message: `發現新版本 ${latest}，正在背景下載，下載完會通知你。` });
+    }
+  } catch (error) {
+    log(`[update] 檢查失敗：${(error as Error).message}`);
+    if (manual) await dialog.showMessageBox({ type: 'warning', title: '檢查更新', message: '沒辦法檢查更新', detail: (error as Error).message });
+  }
+}
+
+async function onUpdateDownloaded(version: string): Promise<void> {
+  updateReady = true;
+  log(`[update] 新版本 ${version} 已下載`);
+  if (SMOKE) {
+    smokeUpdate = version;
+    return;
+  }
+  const { response } = await dialog.showMessageBox(win ?? (undefined as unknown as BrowserWindow), {
+    type: 'info',
+    title: '有新版本',
+    message: `Agent Control Center ${version} 已經下載好了`,
+    detail: '現在重新啟動就會完成更新（會先停下 AI、關好資料庫）。也可以之後再說，下次結束程式時自動安裝。',
+    buttons: ['現在重新啟動並更新', '之後再說'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response !== 0) return;
+  quitting = true;
+  showLoading('正在更新：停下 AI、關好資料庫……');
+  await stopServer();
+  autoUpdater.quitAndInstall(false, true);
 }
 
 // ---------------------------------------------------------------- 選單
@@ -305,6 +409,12 @@ function buildMenu(): void {
         { label: '開啟資料資料夾', click: () => void shell.openPath(dataDir()) },
         { label: '開啟日誌', click: () => void shell.openPath(path.dirname(logFile())) },
         { type: 'separator' },
+        {
+          label: '關閉視窗時縮到系統匣',
+          type: 'checkbox',
+          checked: readSettings().closeToTray !== false,
+          click: (item) => writeSettings({ closeToTray: item.checked }),
+        },
         { label: '重新啟動服務', click: () => void restartServer() },
         { type: 'separator' },
         { label: '結束', role: 'quit' },
@@ -339,6 +449,7 @@ function buildMenu(): void {
       submenu: [
         { label: '使用說明', click: () => void shell.openPath(resource('resources', '使用說明.md')) },
         { label: '在 GitHub 上檢視', click: () => void shell.openExternal('https://github.com/rongkao/agent-control-center') },
+        { label: '檢查更新…', click: () => void checkForUpdates(true) },
         { type: 'separator' },
         {
           label: '關於 Agent Control Center',
@@ -377,6 +488,9 @@ async function openSettingsFile(): Promise<void> {
 
 // ---------------------------------------------------------------- 自動測試（ACC_DESKTOP_SMOKE=1）
 
+/** 冒煙測試期間下載到的更新版本（ACC_UPDATE_FEED）。 */
+let smokeUpdate: string | undefined;
+
 function writeSmoke(result: Record<string, unknown>): void {
   const out = process.env.ACC_DESKTOP_SMOKE_OUT;
   if (out) writeFileSync(out, JSON.stringify(result, null, 2));
@@ -414,6 +528,11 @@ async function smokeCheck(): Promise<void> {
         })()`,
       );
     }
+    // ACC_UPDATE_FEED：等更新下載完（最多 60 秒）
+    if (process.env.ACC_UPDATE_FEED) {
+      for (let i = 0; i < 120 && !smokeUpdate; i += 1) await new Promise((r) => setTimeout(r, 500));
+      page.update = smokeUpdate ?? null;
+    }
     writeSmoke({ ok: true, url: ready?.url, workspace: ready?.workspace, ...page });
   } catch (error) {
     writeSmoke({ ok: false, error: String(error) });
@@ -429,11 +548,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.setAppUserModelId(APP_ID);
-  app.on('second-instance', () => {
-    if (!win) return;
-    if (win.isMinimized()) win.restore();
-    win.focus();
-  });
+  app.on('second-instance', showWindow);
   app.on('before-quit', (event) => {
     if (quitting) return;
     // 先讓服務端優雅關閉，再真正結束
@@ -442,10 +557,15 @@ if (!app.requestSingleInstanceLock()) {
     showLoading('正在關閉（停下 AI、關好資料庫）……');
     void stopServer().finally(() => app.exit(0));
   });
-  app.on('window-all-closed', () => app.quit());
+  // 縮到系統匣時視窗只是隱藏：不因為沒有視窗就結束
+  app.on('window-all-closed', () => {
+    if (!tray) app.quit();
+  });
   void app.whenReady().then(async () => {
     buildMenu();
     createWindow();
+    if (!SMOKE) createTray();
+    setupAutoUpdate();
     startServerProcess(await ensureWorkspace());
   });
 }

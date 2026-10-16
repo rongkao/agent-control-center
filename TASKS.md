@@ -633,5 +633,11 @@ Titles only; see `docs/ANALYSIS_REPORT.md` §7 (「P2：中期」).
     `ACC_CLAUDE_EXECUTABLE` points the SDK at the unpacked `claude.exe`. `npm run desktop` runs the staged app without installing.
   - Evidence: `ACC_DESKTOP_SMOKE=1` smoke run of the packaged `win-unpacked` exe — mock mode (page, API, graceful exit), real mode
     (Claude / Codex / test runner ready, isolation status) and one real Claude turn (`ACC_DESKTOP_SMOKE_PROMPT`, replied "OK").
-  - Not done: code signing, auto-update, macOS / Linux packages, system tray.
+  - System tray: closing the window hides it to the tray (AI work continues, one-time balloon hint), tray menu 開啟控制台 / 結束;
+    toggle in 「檔案 → 關閉視窗時縮到系統匣」.
+  - Auto-update: `electron-updater` against GitHub Releases (`publish` config; `npm run desktop:release` uploads with `GH_TOKEN`);
+    background download, prompt to restart (graceful server stop first) or install on next quit; 「說明 → 檢查更新」;
+    `ACC_AUTO_UPDATE=0` disables. Verified with a local feed (`ACC_UPDATE_FEED`): the packaged 0.1.0 detected and downloaded 0.1.1;
+    smoke mode never installs.
+  - Not done: code signing, macOS / Linux packages.
 - [ ] Remote multi-machine workers.

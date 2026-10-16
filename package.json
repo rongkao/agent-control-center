@@ -24,7 +24,8 @@
     "check:codex-protocol": "node scripts/check-codex-protocol.mjs",
     "bench:events": "tsx scripts/bench-events.ts",
     "desktop": "node apps/desktop/scripts/build.mjs --no-package && electron apps/desktop/stage",
-    "desktop:dist": "node apps/desktop/scripts/build.mjs"
+    "desktop:dist": "node apps/desktop/scripts/build.mjs",
+    "desktop:release": "node apps/desktop/scripts/build.mjs --publish"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

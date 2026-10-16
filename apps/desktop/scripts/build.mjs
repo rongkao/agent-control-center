@@ -25,7 +25,7 @@ const stage = path.join(desktop, 'stage');
 const noPackage = process.argv.includes('--no-package');
 
 /** 執行時需要的第三方套件（服務端與各 adapter 的相依）；版本取開發環境實際安裝的版本。 */
-const RUNTIME_DEPS = ['fastify', '@fastify/static', '@fastify/websocket', 'zod', '@anthropic-ai/claude-agent-sdk', '@agentclientprotocol/sdk'];
+const RUNTIME_DEPS = ['fastify', '@fastify/static', '@fastify/websocket', 'zod', '@anthropic-ai/claude-agent-sdk', '@agentclientprotocol/sdk', 'electron-updater'];
 const OPTIONAL_DEPS = ['@anthropic-ai/sandbox-runtime'];
 
 const step = (text) => console.log(`\n▶ ${text}`);
@@ -64,7 +64,8 @@ const rootPkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')
 const pkg = {
   name: 'agent-control-center',
   productName: 'Agent Control Center',
-  version: rootPkg.version,
+  // 測試自動更新時可以用 ACC_DESKTOP_VERSION 覆蓋版本號
+  version: process.env.ACC_DESKTOP_VERSION || rootPkg.version,
   description: '在同一個介面協調 Claude、Codex 等編碼 AI 的本機控制台',
   author: 'rongkao',
   license: 'UNLICENSED',
@@ -78,6 +79,9 @@ cpSync(path.join(root, 'apps/web/dist'), path.join(stage, 'web'), { recursive: t
 mkdirSync(path.join(stage, 'resources'), { recursive: true });
 cpSync(path.join(root, '.env.example'), path.join(stage, 'resources/.env.example'));
 cpSync(path.join(root, 'docs/使用說明.md'), path.join(stage, 'resources/使用說明.md'));
+// 系統匣圖示
+cpSync(path.join(desktop, 'build/icon.ico'), path.join(stage, 'resources/icon.ico'));
+cpSync(path.join(desktop, 'build/icon.png'), path.join(stage, 'resources/icon.png'));
 
 step('安裝執行時套件');
 run('npm install --omit=dev --no-audit --no-fund --no-package-lock', stage);
@@ -90,16 +94,21 @@ if (noPackage) {
 step('打包安裝程式（electron-builder）');
 const { build } = (await import('electron-builder')).default;
 const electronVersion = JSON.parse(readFileSync(path.join(root, 'node_modules/electron/package.json'), 'utf8')).version;
+const publish = process.argv.includes('--publish');
 const artifacts = await build({
   projectDir: desktop,
+  // --publish：上傳到 GitHub Releases（需要 GH_TOKEN）；平常只產生安裝程式和自動更新用的 latest.yml
+  publish: publish ? 'always' : 'never',
   config: {
+    // 自動更新的來源：GitHub Releases
+    publish: [{ provider: 'github', owner: 'rongkao', repo: 'agent-control-center', releaseType: 'release' }],
     appId: 'com.rongkao.agentcontrolcenter',
     productName: 'Agent Control Center',
     copyright: 'Copyright © rongkao',
     electronVersion,
     electronDist: path.join(root, 'node_modules/electron/dist'),
     npmRebuild: false,
-    directories: { app: stage, output: path.join(desktop, 'release'), buildResources: path.join(desktop, 'build') },
+    directories: { app: stage, output: process.env.ACC_DESKTOP_OUT || path.join(desktop, 'release'), buildResources: path.join(desktop, 'build') },
     files: ['**/*', '!**/*.map'],
     asar: true,
     // Claude Agent SDK 帶的 claude.exe、sandbox-runtime 帶的 srt-win.exe 要在磁碟上才能執行
