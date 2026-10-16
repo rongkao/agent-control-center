@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   { ignores: ['**/dist/**', '**/dist-ts/**', '**/node_modules/**', 'docs/**', 'prototypes/**', 'references/**', '**/*.mjs', '**/*.cjs', 'apps/web/vite.config.ts'] },
   {
-    files: ['packages/*/src/**/*.ts', 'apps/server/src/**/*.ts'],
+    files: ['packages/*/src/**/*.ts', 'apps/server/src/**/*.ts', 'apps/desktop/src/**/*.ts'],
     extends: [tseslint.configs.base],
     languageOptions: {
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
