@@ -643,6 +643,16 @@ export interface AgentStartInput {
   cwd?: string;
   mode?: AgentMode;
   context?: Record<string, unknown>;
+  /** 這個任務還剩多少美元預算（P1-7；設了 maxCostUsd 才有）：支援的 provider 據此自己設上限（Claude 的 maxBudgetUsd）。 */
+  remainingCostUsd?: number;
+}
+
+/** 方案額度（P1-7，例如 Codex 訂閱的 5 小時 / 每週用量）。 */
+export interface QuotaStatus {
+  plan?: string;
+  windows: Array<{ label: string; usedPercent: number; resetsAt?: number }>;
+  /** 已經用完時的原因（provider 的代碼）。 */
+  limitReached?: string;
 }
 
 export interface AgentSessionHandle {
@@ -704,6 +714,8 @@ export interface AgentResumeInput {
   taskId: string;
   runId: string;
   agentId: string;
+  /** 這個任務還剩多少美元預算（P1-7，見 AgentStartInput）。 */
+  remainingCostUsd?: number;
   reason: 'recovery' | 'approval' | 'message';
   /** 需要續跑的邏輯步驟（來自 ResumeCursor 或 currentStep）。 */
   step: string;
@@ -782,6 +794,8 @@ export interface AgentAdapter {
   isolation?(): Promise<IsolationStatus>;
   /** 配置執行隔離（P2-8，可選，例如 Codex 的 Windows 沙箱）：由操作員在介面上按按鈕觸發。 */
   setupIsolation?(): Promise<{ ok: boolean; message: string }>;
+  /** 方案額度（P1-7，可選）：例如 Codex 訂閱的剩餘用量；查不到時回傳 undefined。 */
+  quota?(): Promise<QuotaStatus | undefined>;
 }
 
 /** 快照載入結果：未知的更高 schema 或損壞的快照不會拋給呼叫方，而是顯式返回，便於 fail closed。 */

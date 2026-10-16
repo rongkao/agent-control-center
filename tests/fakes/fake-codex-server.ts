@@ -117,6 +117,10 @@ export class FakeCodexServer {
       case 'initialized':
         return;
       // Windows 沙箱（P2-8）：就緒狀態由 windowsSandboxStatus 決定；setupStart 之後發 setupCompleted 並變成 ready
+      // 方案額度（P1-7）
+      case 'account/rateLimits/read':
+        this.send({ id, result: { rateLimits: { planType: 'plus', primary: { usedPercent: 42, windowDurationMins: 300, resetsAt: 1_800_000_000 }, secondary: { usedPercent: 91, windowDurationMins: 10080, resetsAt: null } } } });
+        return;
       case 'windowsSandbox/readiness':
         this.send({ id, result: { status: this.windowsSandboxStatus } });
         return;

@@ -197,6 +197,11 @@ export const api = {
   reassign: (taskId: string, toAgentId: string, note?: string) => post(`/api/tasks/${taskId}/reassign`, { toAgentId, note }),
   setHandoffPolicy: (taskId: string, handoffPolicy: 'ask' | 'auto') => post(`/api/tasks/${taskId}/settings`, { handoffPolicy }),
   continueTask: (taskId: string, agentId: string, message: string) => post<{ id: string }>(`/api/tasks/${taskId}/continue`, { agentId, message }),
+  /** 方案額度（P1-7）。 */
+  quota: () =>
+    request<{ agents: Array<{ agentId: string; name: string; quota: { plan?: string; limitReached?: string; windows: Array<{ label: string; usedPercent: number; resetsAt?: number }> } }> }>(
+      '/api/quota',
+    ),
   /** 執行隔離（P2-8）。 */
   isolation: () =>
     request<{ agents: Array<{ agentId: string; name: string; status: { level: 'sandbox' | 'degraded'; ready: boolean; detail: string; setupHint?: string; canSetup?: boolean } }> }>(

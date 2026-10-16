@@ -671,6 +671,9 @@ export function registerRoutes(app: FastifyInstance, ctx: RouteContext): void {
     return { ok: true };
   });
 
+  // 方案額度（P1-7）：例如 Codex 訂閱的 5 小時 / 每週用量
+  app.get('/api/quota', async () => ({ agents: await orchestrator.agentQuota() }));
+
   // 執行隔離（P2-8）：測試執行器、Codex 等在什麼隔離級別下執行命令，以及怎麼開啟
   app.get('/api/isolation', async () => ({ agents: await orchestrator.agentIsolation() }));
   app.post<{ Params: { agentId: string } }>('/api/agents/:agentId/isolation/setup', async (request) => {

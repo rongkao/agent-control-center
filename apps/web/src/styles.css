@@ -457,3 +457,13 @@ pre.log.diff { white-space: pre-wrap; }
 /* 比較（P2-11） */
 .group-compare { margin-bottom: 12px; }
 .group-compare tr.current td { background: #f5f8ff; }
+
+/* 方案額度（P1-7） */
+.quota { margin-bottom: 12px; }
+.quota-agent { margin-top: 8px; }
+.quota-row { display: grid; grid-template-columns: 90px 1fr 48px auto; align-items: center; gap: 8px; margin-top: 6px; }
+.quota-bar { height: 8px; background: #eef1f6; border-radius: 999px; overflow: hidden; }
+.quota-bar > span { display: block; height: 100%; background: #2e6be6; }
+.quota-bar > span.warm { background: #f79009; }
+.quota-bar > span.hot { background: #d92d20; }
+.quota-pct { text-align: right; font-variant-numeric: tabular-nums; }

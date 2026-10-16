@@ -8,6 +8,8 @@ import {
   budgetBlockLimit,
   budgetLimitsProblem,
   budgetUsage,
+  nearlyExhausted,
+  remainingCostUsd,
   canStartReviewRound,
   closeActiveClockAfterRestart,
   createBudgetSnapshot,
@@ -84,6 +86,7 @@ import type {
   WorkspaceCheckpointer,
   WorkspaceDiff,
   IsolationStatus,
+  QuotaStatus,
 } from './types.js';
 
 export interface CreateTaskInput {
@@ -1007,6 +1010,17 @@ export class Orchestrator {
         return { agentId: a.info.id, name: a.info.name, status: { ...status, canSetup: status.canSetup === true && typeof a.setupIsolation === 'function' } };
       }),
     );
+  }
+
+  /** 各 agent 的方案額度（P1-7）：沒有實現 quota 的不列出；查詢失敗的略過。 */
+  async agentQuota(): Promise<Array<{ agentId: string; name: string; quota: QuotaStatus }>> {
+    const out: Array<{ agentId: string; name: string; quota: QuotaStatus }> = [];
+    for (const adapter of this.adapters.values()) {
+      if (!adapter.quota) continue;
+      const quota = await adapter.quota().catch(() => undefined);
+      if (quota) out.push({ agentId: adapter.info.id, name: adapter.info.name, quota });
+    }
+    return out;
   }
 
   /** 配置某個 agent 的執行隔離（P2-8，操作員在介面上按按鈕觸發）。 */
@@ -3273,7 +3287,11 @@ export class Orchestrator {
     ticket: DispatchTicket,
   ): Promise<boolean> {
     const task = await this.mustTask(taskId);
+    const budgetNow = (await this.mustRun(task.runId)).budget;
+    // 預算快用完時提醒 AI 收尾（P1-7）；剩餘美元預算交給支援的 provider 自己設上限
+    prompt = withWindDownNote(prompt, budgetNow, this.now());
     await this.recordOutgoing(task, agentId, prompt, source, extra.meta);
+    const remaining = remainingCostUsd(budgetNow, this.now());
 
     const input: AgentStartInput = {
       projectId: task.projectId,
@@ -3283,6 +3301,7 @@ export class Orchestrator {
       mode,
       cwd: extra.cwd,
       context: extra.context,
+      ...(remaining !== undefined ? { remainingCostUsd: remaining } : {}),
     };
 
     const sequenceBefore = (await this.mustRun(task.runId)).lastSequence;
@@ -3589,6 +3608,8 @@ export class Orchestrator {
     freshRound = false,
   ): Promise<boolean> {
     const options = { mode: requestedMode };
+    // 預算快用完時提醒 AI 收尾（P1-7）
+    message = withWindDownNote(message, (await this.mustRun(task.runId)).budget, this.now());
     await this.recordOutgoing(task, agentId, message, source, meta);
     const run = await this.mustRun(task.runId);
     const session = run.agentSessions[agentId]!;
@@ -4283,6 +4304,7 @@ export class Orchestrator {
       step: run.resumeCursor?.step ?? run.currentStep,
       // 完整台賬（P2-10）：快照裡只有最近一段，呼叫方從事件日誌重建後傳進來
       completedSideEffectIds: allSideEffectIds ?? run.completedSideEffects.map((x) => x.id),
+      ...(remainingCostUsd(run.budget, this.now()) !== undefined ? { remainingCostUsd: remainingCostUsd(run.budget, this.now()) } : {}),
       uncertainSideEffects: (run.inFlightSideEffects ?? [])
         .filter((x) => x.agentId === session.agentId && !run.pendingApprovals.some((a) => a.status === 'pending' && a.providerCallId === x.id))
         .slice(-10)
@@ -4581,4 +4603,14 @@ function workspacesOverlap(a: string, b: string): boolean {
   const prefix = outer.endsWith('/') ? outer : `${outer}/`;
   if (!inner.startsWith(prefix)) return false;
   return !inner.slice(prefix.length).split('/').includes('.acc-worktrees');
+}
+
+/**
+ * 預算快用完時（P1-7）在派發給 AI 的訊息後面附一句收尾提醒：把手上的改動做完、留下狀態，不要再開新的大改動。
+ * 訊息原文不變，提醒放在最後（不影響數據區塊的結構）。
+ */
+function withWindDownNote(message: string, budget: BudgetSnapshot, now: number): string {
+  const near = nearlyExhausted(budget, now);
+  if (near.length === 0) return message;
+  return `${message}\n\n[Orchestrator note] The task budget is almost used up (${near.join(', ')}). Wrap up: finish the change you are making, make sure the workspace is in a consistent state, and summarise what is done and what remains. Do not start new large changes.`;
 }

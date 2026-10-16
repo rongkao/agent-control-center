@@ -254,7 +254,7 @@ export class ClaudeAgentSdkAdapter implements AgentAdapter {
     if (this.disposed) throw new Error('Claude adapter has been shut down');
     const session = this.createSession(`claude-${randomUUID()}`, input, emit);
     this.pushTurn(session, input.prompt);
-    await this.launch(session, { cwd: input.cwd ?? this.options.defaultCwd, mode: input.mode });
+    await this.launch(session, { cwd: input.cwd ?? this.options.defaultCwd, mode: input.mode, maxBudgetUsd: input.remainingCostUsd });
     return { sessionId: session.localId, providerSessionId: session.providerSessionId };
   }
 
@@ -475,7 +475,7 @@ export class ClaudeAgentSdkAdapter implements AgentAdapter {
     session.providerSessionId = providerSessionId;
     if (approved) session.preApproved.push(approved);
     this.pushTurn(session, resumePrompt(input));
-    await this.launch(session, { resume: providerSessionId, cwd, mode });
+    await this.launch(session, { resume: providerSessionId, cwd, mode, maxBudgetUsd: input.remainingCostUsd });
   }
 
   private createSession(localId: string, ids: { projectId: string; taskId: string; runId: string }, emit: EventSink): ClaudeSession {
@@ -511,7 +511,7 @@ export class ClaudeAgentSdkAdapter implements AgentAdapter {
     return session;
   }
 
-  private async launch(session: ClaudeSession, extra: { cwd?: string; resume?: string; mode?: AgentStartInput['mode'] }): Promise<void> {
+  private async launch(session: ClaudeSession, extra: { cwd?: string; resume?: string; mode?: AgentStartInput['mode']; maxBudgetUsd?: number }): Promise<void> {
     // 唯讀步驟（評審/診斷/分析）強制 plan 模式，不因為任務需要而放寬權限；續跑時同樣適用
     const permissionMode = isReadOnlyMode(extra.mode) ? 'plan' : this.writablePermissionMode();
     session.permissionMode = permissionMode;
@@ -551,6 +551,8 @@ export class ClaudeAgentSdkAdapter implements AgentAdapter {
         resume: extra.resume,
         model: this.options.model,
         permissionMode,
+        // 任務剩餘的美元預算（P1-7）：Claude 自己在這個上限內停下（以 error_max_budget_usd 結束這一輪）
+        ...(extra.maxBudgetUsd !== undefined && extra.maxBudgetUsd > 0 ? { maxBudgetUsd: extra.maxBudgetUsd } : {}),
         abortController: session.abort,
         // 逐字流式片段（只做即時展示，不持久化）
         includePartialMessages: true,

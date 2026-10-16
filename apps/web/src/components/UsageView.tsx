@@ -1,4 +1,6 @@
-import { duration, tokens, usd } from '../format';
+import React from 'react';
+import { api } from '../api';
+import { duration, time, tokens, usd } from '../format';
 import type { Agent, UsageSummary } from '../types';
 
 /** 用量面板（P3.3）：呼叫、耗時、上報/估算 token、評審輪次、失敗、停滯。 */
@@ -20,6 +22,7 @@ export function UsageView({ usage, agents }: { usage?: UsageSummary; agents: Age
   const name = (id: string) => agents.find((a) => a.id === id)?.name ?? id;
   return (
     <div className="usage-view">
+      <QuotaCard />
       <div className="stat-grid">
         {cards.map(([label, value, hint]) => (
           <div key={label} className="card stat">
@@ -72,5 +75,38 @@ export function UsageView({ usage, agents }: { usage?: UsageSummary; agents: Age
         </table>
       </section>
     </div>
+  );
+}
+
+type Quota = Awaited<ReturnType<typeof api.quota>>['agents'];
+
+/** 方案額度（P1-7）：例如 Codex 訂閱的每週用量；快用完時以顏色提醒。 */
+function QuotaCard() {
+  const [quota, setQuota] = React.useState<Quota>();
+  React.useEffect(() => {
+    api.quota().then((r) => setQuota(r.agents), () => setQuota([]));
+  }, []);
+  if (!quota || quota.length === 0) return null;
+  return (
+    <section className="card quota">
+      <h3>方案額度</h3>
+      {quota.map((a) => (
+        <div key={a.agentId} className="quota-agent">
+          <b>{a.name}</b>
+          {a.quota.plan && <span className="muted small"> 方案：{a.quota.plan}</span>}
+          {a.quota.limitReached && <span className="iso-badge degraded"> 已用完</span>}
+          {a.quota.windows.map((w) => (
+            <div key={w.label} className="quota-row">
+              <span className="quota-label">{w.label}</span>
+              <span className="quota-bar">
+                <span className={w.usedPercent >= 90 ? 'hot' : w.usedPercent >= 70 ? 'warm' : ''} style={{ width: `${Math.min(100, w.usedPercent)}%` }} />
+              </span>
+              <span className="quota-pct">{w.usedPercent}%</span>
+              {w.resetsAt && <span className="muted small">{time(w.resetsAt)} 重置</span>}
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
   );
 }

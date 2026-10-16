@@ -145,8 +145,11 @@ Validation at the end of the series: `npm run typecheck`, `npm test` (70 test fi
 
 ### Report P0 — must fix now (security and data correctness)
 
-- [ ] **P0-0 Turn the probes into regression tests** (every "實測" finding)
-  - Status: **partially done.** Every probe scenario cited in report §3.2 (probe scenarios 1, 3, 4, 6; probe2, probe3 B / D,
+- [x] **P0-0 Turn the probes into regression tests** (every "實測" finding)
+  - Status: **done.** The scenarios listed below as "not covered" got their tests with P1-1 / P1-3 / P1-4 (`completion-correlation`,
+    `workflow-stale-completion`, `ask-both-advisor-rounds`, `permission-propagation`, `workspace-and-handoff-context`); L-3 is covered
+    by `terminal-settings-after-restart.test.ts`. probe6 (unverified §3.5 leads) stays documentation only.
+  - Earlier status: partially done. Every probe scenario cited in report §3.2 (probe scenarios 1, 3, 4, 6; probe2, probe3 B / D,
     probe4, probe5, probe7, probe8; plus the two-instance, cross-site WebSocket, stdin EOF and concurrent-approval repros) and
     probe scenarios 10 / 11 have regression tests. The fixes landed together with their tests, so the tests use normal assertions
     instead of `it.fails`; each test file's header describes the reproduction before the fix. Not covered yet — they belong to P1
@@ -260,8 +263,10 @@ Validation at the end of the series: `npm run typecheck`, `npm test` (70 test fi
   - Known limitations: token counts still use the providers' per-turn numbers (M-17) and there is no USD or subscription-quota
     budget yet (P1-7).
 
-- [ ] **P0-8 Minimal security tightening** (H-15, M-13, M-15, M-35) — `58dfccc`, review `f3901cf`
-  - Status: **partially done.** Every automated acceptance criterion has tests. The manual criterion "after tightening the
+- [x] **P0-8 Minimal security tightening** (H-15, M-13, M-15, M-35) — `58dfccc`, review `f3901cf`
+  - Status: **done.** The manual criterion is met: `scripts/smoke-claude.ts` and `scripts/smoke-codex.ts` were run in real mode on
+    Windows with logged-in Claude Code and Codex 0.159.2 and passed (including the environment allow-list checks).
+  - Earlier status: partially done. Every automated acceptance criterion has tests. The manual criterion "after tightening the
     environment, run `scripts/smoke-claude.ts` / `scripts/smoke-codex.ts` in real mode on Windows" is prepared (both scripts now
     print the P0-8 checks), but no real-mode run is recorded in this repository yet; it needs a machine with logged-in Claude Code
     and Codex.
@@ -370,7 +375,7 @@ fixing P0 is noted in the "Known limitations" above.
     show it; pre-approval after restart matches the full input, so long `Write` calls are not asked twice.
     Evidence: `approval-integrity.test.ts`.
   - Not done: Codex file-change diffs inside the approval card.
-- [ ] P1-7 Usage and cost (M-17) — partial
+- [x] P1-7 Usage and cost (M-17)
   - Done: one token convention (input includes cache reads and writes, OTel GenAI style). Claude: `total_cost_usd` / `modelUsage`
     are cumulative per query and include sub-agents, so the adapter forwards them as `usage.cumulative` and the projection keeps a
     per-session cursor (`RunSnapshot.usageCursors`) and records only the delta — no double counting after resume, resets and
@@ -381,8 +386,9 @@ fixing P0 is noted in the "Known limitations" above.
   - Done later: global daily cap `ACC_DAILY_MAX_COST_USD` — once today's estimated spend across all tasks reaches it, new tasks and
     operator messages get `409 DAILY_BUDGET_EXHAUSTED` (nothing written) and orchestrator dispatches block the task with a Chinese
     reason; resets the next day. Evidence: `usage-accounting.test.ts`.
-  - Remaining: passing the remaining USD to Claude's `maxBudgetUsd`, Codex plan quota (`account/rateLimits`) in the UI, a wind-down
-    instruction before a budget runs out.
+  - Done later: the remaining USD of the budget window is passed to Claude as `maxBudgetUsd` (start and resume); Codex plan quota
+    (`account/rateLimits/read` → `QuotaStatus`, `GET /api/quota`, 「方案額度」 card on the usage page); a wind-down note is appended
+    to messages dispatched within a window once any limit reaches 80% (`nearlyExhausted`). Evidence: `budget-wind-down.test.ts`.
 - [x] P1-8 Loop detection and multi-agent loop safety
   - Implemented (`packages/core/src/stuck-detector.ts`): the same tool with the same input 3 times in a row, or the same tool
     failing 3 times with the same (normalised) output, stops that agent's turn and blocks the task with `LOOP_DETECTED` and a
@@ -444,7 +450,7 @@ fixing P0 is noted in the "Known limitations" above.
     tested range (0.156.x) and prints a Chinese notice when it differs (this machine now has 0.157.1). Concurrent resumes of the same
     (run, agent) are already single-flight through the per-(run, agent) dispatch lock from the P0 series.
     Evidence: `recovery-robustness.test.ts`.
-- [ ] P1-15 UI experience and accessibility (M-26, M-29, L-22) — partial
+- [x] P1-15 UI experience and accessibility (M-26, M-29, L-22)
   - Done (M-26): replies and streaming output render as Markdown (`react-markdown` + `remark-gfm`: headings, lists, tables, code
     blocks with a copy button). Raw HTML is never rendered, images are shown as links instead of being loaded, links open in a new
     window without a Referer. Checked in the browser.
@@ -607,10 +613,10 @@ Titles only; see `docs/ANALYSIS_REPORT.md` §7 (「P2：中期」).
 
 ## P4 — Later
 
-- [ ] Gemini/OpenCode adapters.
+- [x] Gemini/OpenCode adapters — through the generic ACP adapter (P2-1).
 - [ ] Intelligent router based on task complexity.
 - [ ] DAG workflows.
-- [ ] Pluggable policy engine.
+- [x] Pluggable policy engine — P2-7 (`ApprovalPolicySource`, rules, autonomy presets).
 - [x] Desktop wrapper (Electron instead of Tauri: the server needs Node 24 and `node:sqlite`, which Electron 44 ships).
   - `apps/desktop`: the server runs in an Electron `utilityProcess` (`src/server-entry.ts`, same `startServer` as the CLI, port 8788 with
     a random-port fallback); the window loads the tokened access URL (same cookie login as the web version). Shares the CLI data

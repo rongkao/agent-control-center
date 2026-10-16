@@ -298,3 +298,27 @@ export function budgetLimitsProblem(limits: Record<string, unknown>): string | u
   }
   return undefined;
 }
+
+/** 這個預算視窗還剩多少美元（P1-7）；沒有設 maxCostUsd 時回傳 undefined。 */
+export function remainingCostUsd(snapshot: BudgetSnapshot, now = Date.now()): number | undefined {
+  if (snapshot.maxCostUsd === undefined) return undefined;
+  const { used, max } = budgetUsage(snapshot, 'maxCostUsd', now);
+  return Math.max(0, max - used);
+}
+
+/** 收尾提醒的門檻（P1-7）：任何一項預算用到這個比例時，派發給 AI 的訊息附上一句提醒。 */
+export const WIND_DOWN_RATIO = 0.8;
+const WIND_DOWN_LIMITS: readonly BudgetLimit[] = ['maxTurns', 'maxAgentCalls', 'maxDurationMs', 'maxEstimatedTokens', 'maxCostUsd'];
+
+/** 快用完的預算（P1-7）：回傳英文說明（交給 AI 看），沒有時回傳空陣列。 */
+export function nearlyExhausted(snapshot: BudgetSnapshot, now = Date.now(), ratio = WIND_DOWN_RATIO): string[] {
+  const names: Record<string, string> = { maxTurns: 'turns', maxAgentCalls: 'agent calls', maxDurationMs: 'working time', maxEstimatedTokens: 'tokens', maxCostUsd: 'cost' };
+  const out: string[] = [];
+  for (const limit of WIND_DOWN_LIMITS) {
+    if (limit === 'maxEstimatedTokens' && snapshot.maxEstimatedTokens === undefined) continue;
+    if (limit === 'maxCostUsd' && snapshot.maxCostUsd === undefined) continue;
+    const { used, max } = budgetUsage(snapshot, limit, now);
+    if (max > 0 && used / max >= ratio) out.push(`${names[limit]} ${Math.round((used / max) * 100)}% used`);
+  }
+  return out;
+}

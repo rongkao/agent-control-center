@@ -4,6 +4,7 @@ import type {
   AgentInfo,
   ApprovalQuestion,
   IsolationStatus,
+  QuotaStatus,
   AgentResumeInput,
   AgentSendOptions,
   AgentSessionHandle,
@@ -144,6 +145,14 @@ function codexQuestions(raw: unknown): ApprovalQuestion[] {
     allowOther: q.isOther === true || !Array.isArray(q.options) || (q.options as unknown[]).length === 0,
     secret: q.isSecret === true,
   }));
+}
+
+/** Codex account/rateLimits/read 回應裡的用量快照（只取用到的欄位）。 */
+interface CodexRateLimitSnapshot {
+  planType?: string | null;
+  primary?: { usedPercent: number; windowDurationMins?: number | null; resetsAt?: number | null } | null;
+  secondary?: { usedPercent: number; windowDurationMins?: number | null; resetsAt?: number | null } | null;
+  rateLimitReachedType?: string | null;
 }
 
 type ApprovalKind = 'command' | 'fileChange' | 'permissions' | 'userInput';
@@ -564,6 +573,31 @@ export class CodexAppServerAdapter implements AgentAdapter {
       // 回覆一到就補發中斷，這一輪不能在取消之後照樣執行（例如在 workspace-write 沙箱裡改檔案）；它的通知一律被丟棄
       await this.interruptTurn(session, response.turn.id);
       throw new Error(`Codex session ${session.localId} was cancelled while the turn was starting; the turn has been interrupted`);
+    }
+  }
+
+  /**
+   * 方案額度（P1-7）：讀取 Codex 訂閱的用量視窗（例如 5 小時、每週），顯示在「用量」頁。
+   * 用 API key 計費（沒有方案）或查詢失敗時回傳 undefined。
+   */
+  async quota(): Promise<QuotaStatus | undefined> {
+    try {
+      const client = await this.connect();
+      const response = await client.request<{ rateLimits?: CodexRateLimitSnapshot | null; rateLimitsByLimitId?: Record<string, CodexRateLimitSnapshot> | null }>('account/rateLimits/read', {}, 15_000);
+      const snap = response.rateLimitsByLimitId?.codex ?? response.rateLimits ?? undefined;
+      if (!snap) return undefined;
+      const windows: QuotaStatus['windows'] = [];
+      const every = (n: number, unit: string) => (n === 1 ? `每${unit}` : `每 ${n} ${unit}`);
+      const label = (mins?: number | null) =>
+        !mins ? '用量' : mins % 10080 === 0 ? every(mins / 10080, '週') : mins % 1440 === 0 ? every(mins / 1440, '天') : mins % 60 === 0 ? every(mins / 60, '小時') : `每 ${mins} 分鐘`;
+      for (const w of [snap.primary, snap.secondary]) {
+        if (w && typeof w.usedPercent === 'number') windows.push({ label: label(w.windowDurationMins), usedPercent: w.usedPercent, ...(w.resetsAt ? { resetsAt: w.resetsAt * 1000 } : {}) });
+      }
+      if (windows.length === 0) return undefined;
+      return { ...(snap.planType ? { plan: snap.planType } : {}), windows, ...(snap.rateLimitReachedType ? { limitReached: snap.rateLimitReachedType } : {}) };
+    } catch (error) {
+      this.log('Codex rate limits unavailable', error);
+      return undefined;
     }
   }
 
